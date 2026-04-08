@@ -11,6 +11,7 @@
 		CheckCircle2, 
 		Activity, 
 		ShieldCheck,
+		ShieldAlert,
 		AlertTriangle,
 		ArrowDownWideNarrow,
 		ArrowUpNarrowWide,
@@ -262,7 +263,21 @@
 												<span class="text-neutral-500 text-xs truncate max-w-sm" title={item.path}>{item.path}</span>
 											</div>
 										</td>
-										<td class="px-6 py-4 text-neutral-400">{item.category}</td>
+										<td class="px-6 py-4">
+											{#if item.category.toLowerCase().includes('privacy') || item.risk === 'High'}
+												<span class="px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-sm flex items-center w-max gap-1">
+												   <ShieldAlert size={12}/> {item.category}
+												</span>
+											{:else if item.category.toLowerCase().includes('system')}
+												<span class="px-2.5 py-1 text-xs font-medium rounded-md bg-neutral-800 text-neutral-400 border border-border shadow-sm w-max inline-block">
+												   {item.category}
+												</span>
+											{:else}
+												<span class="px-2.5 py-1 text-xs font-medium rounded-md bg-primary/10 text-primary border border-primary/20 shadow-sm w-max inline-block">
+												   {item.category}
+												</span>
+											{/if}
+										</td>
 										<td class="px-6 py-4 text-right font-medium text-foreground">{item.size_human}</td>
 										<td class="px-6 py-4 text-right">
 											<DropdownMenu.Root>
