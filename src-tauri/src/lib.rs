@@ -95,6 +95,10 @@ pub fn run() {
             cleaner::get_leftover_results,
             cleaner::clean_leftovers,
             cleaner::get_audit_logs,
+            cleaner::get_schedules,
+            cleaner::add_schedule,
+            cleaner::delete_schedule,
+            cleaner::toggle_schedule,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

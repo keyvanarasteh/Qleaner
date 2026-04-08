@@ -124,3 +124,10 @@ pub struct AuditHistoryItem {
     pub timestamp: String,
     pub signature: String,
 }
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct ScheduleItem {
+    pub id: i64,
+    pub cron_expr: String,
+    pub is_active: bool,
+}

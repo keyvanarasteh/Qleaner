@@ -587,7 +587,6 @@ pub async fn get_audit_logs(db_pool: tauri::State<'_, sqlx::SqlitePool>) -> Resu
         .fetch_all(&*db_pool)
         .await
         .map_err(|e| super::error::CleanerError::Database(e.to_string()))?;
-
     let mut logs = Vec::new();
     for row in rows {
         logs.push(super::models::AuditHistoryItem {
@@ -598,9 +597,59 @@ pub async fn get_audit_logs(db_pool: tauri::State<'_, sqlx::SqlitePool>) -> Resu
             signature: row.try_get("signature").unwrap_or_default(),
         });
     }
-
+    
     Ok(logs)
 }
+
+#[tauri::command]
+pub async fn get_schedules(db_pool: tauri::State<'_, sqlx::SqlitePool>) -> Result<Vec<super::models::ScheduleItem>, super::error::CleanerError> {
+    let rows = sqlx::query("SELECT id, cron_expr, is_active FROM schedules ORDER BY id ASC")
+        .fetch_all(&*db_pool)
+        .await
+        .map_err(|e| super::error::CleanerError::Database(e.to_string()))?;
+        
+    let mut schedules = Vec::new();
+    for row in rows {
+        schedules.push(super::models::ScheduleItem {
+            id: row.try_get("id").unwrap_or(0i64),
+            cron_expr: row.try_get("cron_expr").unwrap_or_default(),
+            is_active: row.try_get("is_active").unwrap_or(false),
+        });
+    }
+    Ok(schedules)
+}
+
+#[tauri::command]
+pub async fn add_schedule(db_pool: tauri::State<'_, sqlx::SqlitePool>, cron_expr: String) -> Result<(), super::error::CleanerError> {
+    sqlx::query("INSERT INTO schedules (cron_expr, is_active) VALUES (?, 1)")
+        .bind(cron_expr)
+        .execute(&*db_pool)
+        .await
+        .map_err(|e| super::error::CleanerError::Database(e.to_string()))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_schedule(db_pool: tauri::State<'_, sqlx::SqlitePool>, id: i64) -> Result<(), super::error::CleanerError> {
+    sqlx::query("DELETE FROM schedules WHERE id = ?")
+        .bind(id)
+        .execute(&*db_pool)
+        .await
+        .map_err(|e| super::error::CleanerError::Database(e.to_string()))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn toggle_schedule(db_pool: tauri::State<'_, sqlx::SqlitePool>, id: i64, is_active: bool) -> Result<(), super::error::CleanerError> {
+    sqlx::query("UPDATE schedules SET is_active = ? WHERE id = ?")
+        .bind(is_active)
+        .bind(id)
+        .execute(&*db_pool)
+        .await
+        .map_err(|e| super::error::CleanerError::Database(e.to_string()))?;
+    Ok(())
+}
+
 
 pub(crate) async fn fetch_docker_size(uri: &str) -> Option<u64> {
     if let Ok(output) = tokio::process::Command::new("docker").args(["system", "df", "--format", "{{json .}}"]).output().await {
