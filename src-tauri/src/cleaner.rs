@@ -1,6 +1,7 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     path::{Path, PathBuf},
     sync::{Mutex, OnceLock},
 };
@@ -8,10 +9,31 @@ use sysinfo::{Disks, System};
 use ignore::WalkBuilder;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::fs;
+use tokio_util::sync::CancellationToken;
 
 // ============================================================================
 // DATA STRUCTURES
 // ============================================================================
+
+#[derive(Debug, thiserror::Error)]
+pub enum CleanerError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Trash error: {0}")]
+    Trash(#[from] trash::Error),
+    #[error("Operation cancelled")]
+    Cancelled,
+}
+
+// Needed so Tauri can return CleanerError natively in invoke calls
+impl Serialize for CleanerError {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.to_string().as_ref())
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheLocation {
@@ -79,6 +101,8 @@ static DISKS: OnceLock<Mutex<Disks>> = OnceLock::new();
 pub struct CleanerState {
     pub scan_results: tokio::sync::Mutex<Vec<CacheLocation>>,
     pub scan_in_progress: tokio::sync::Mutex<bool>,
+    pub cancel_token: tokio::sync::Mutex<CancellationToken>,
+    pub size_cache: tokio::sync::Mutex<HashMap<String, u64>>,
 }
 
 impl CleanerState {
@@ -88,6 +112,8 @@ impl CleanerState {
         Self {
             scan_results: tokio::sync::Mutex::new(Vec::new()),
             scan_in_progress: tokio::sync::Mutex::new(false),
+            cancel_token: tokio::sync::Mutex::new(CancellationToken::new()),
+            size_cache: tokio::sync::Mutex::new(HashMap::new()),
         }
     }
 }
@@ -226,13 +252,25 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
 // ============================================================================
 
 #[tauri::command]
-pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Result<(), String> {
+pub async fn cancel_scan(state: State<'_, CleanerState>) -> Result<(), CleanerError> {
+    state.cancel_token.lock().await.cancel();
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Result<(), CleanerError> {
     let mut in_progress = state.scan_in_progress.lock().await;
     if *in_progress {
         return Ok(());
     }
     *in_progress = true;
     drop(in_progress);
+
+    // Reset token and grab local clones
+    let token = CancellationToken::new();
+    *state.cancel_token.lock().await = token.clone();
+    
+    let sizes_cache = state.size_cache.lock().await.clone();
 
     let mut locations = get_cache_locations();
     let total = locations.len();
@@ -241,8 +279,15 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
     
     let app_clone = app.clone();
     tauri::async_runtime::spawn(async move {
+        // Task 10: Batched Emissions (Throttle events to max ~60Hz)
+        let throttle_dur = tokio::time::Duration::from_millis(16);
+        let mut last_emit = tokio::time::Instant::now();
+        
         while let Some(progress) = rx.recv().await {
-            let _ = app_clone.emit("scan-progress", progress);
+            if progress.percent == 100 || last_emit.elapsed() >= throttle_dur {
+                let _ = app_clone.emit("scan-progress", &progress);
+                last_emit = tokio::time::Instant::now();
+            }
         }
     });
 
@@ -250,8 +295,13 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
     tauri::async_runtime::spawn(async move {
         let mut found_count = 0;
         let mut total_size = 0;
+        let mut local_cache_updates = HashMap::new();
 
         for (i, loc) in locations.iter_mut().enumerate() {
+            if token.is_cancelled() {
+                break;
+            }
+
             let _ = tx.send(ScanProgress {
                 current: i,
                 total,
@@ -264,9 +314,18 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
             let path = PathBuf::from(&loc.path);
             loc.exists = fs::try_exists(&path).await.unwrap_or(false);
             if loc.exists {
-                let size = tokio::task::spawn_blocking(move || {
-                    get_directory_size(&path)
-                }).await.unwrap_or(0);
+                // Task 12: File Size Caching
+                let size = if let Some(cached_size) = sizes_cache.get(&loc.path) {
+                    *cached_size
+                } else {
+                    let path_clone = path.clone();
+                    let computed_size = tokio::task::spawn_blocking(move || {
+                        get_directory_size(&path_clone)
+                    }).await.unwrap_or(0);
+                    
+                    local_cache_updates.insert(loc.path.clone(), computed_size);
+                    computed_size
+                };
                 
                 loc.size = size;
                 loc.size_human = human_readable_size(size);
@@ -276,10 +335,19 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
                 }
             }
             
+            // Simulating artificial delay for cool scanning effect (if required)
             tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
         }
 
         let state = app_worker.state::<CleanerState>();
+        
+        // Update global sizes cache
+        let mut global_cache = state.size_cache.lock().await;
+        for (k, v) in local_cache_updates {
+            global_cache.insert(k, v);
+        }
+        drop(global_cache);
+
         let mut scan_results = state.scan_results.lock().await;
         *scan_results = locations.clone();
         
@@ -290,7 +358,7 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
             current: total,
             total,
             percent: 100,
-            current_location: "Scan complete".into(),
+            current_location: if token.is_cancelled() { "Scan cancelled".into() } else { "Scan complete".into() },
             found_count,
             total_size,
         }).await;
@@ -300,12 +368,12 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
 }
 
 #[tauri::command]
-pub async fn get_scan_results(state: State<'_, CleanerState>) -> Result<Vec<CacheLocation>, String> {
+pub async fn get_scan_results(state: State<'_, CleanerState>) -> Result<Vec<CacheLocation>, CleanerError> {
     Ok(state.scan_results.lock().await.clone())
 }
 
 #[tauri::command]
-pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> Result<u64, String> {
+pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> Result<u64, CleanerError> {
     let results = state.scan_results.lock().await.clone();
     let mut freed_space = 0;
 
@@ -314,12 +382,24 @@ pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> 
             let path = PathBuf::from(&loc.path);
             let exists = fs::try_exists(&path).await.unwrap_or(false);
             if exists {
-                if let Err(_) = trash::delete(&path) {
-                    if let Ok(_) = fs::remove_dir_all(&path).await {
+                // Task 7: Granular Deletion over directory contents
+                let mut read_dir = fs::read_dir(&path).await?;
+                while let Ok(Some(entry)) = read_dir.next_entry().await {
+                    let child_path = entry.path();
+                    let is_dir = entry.file_type().await.map(|t| t.is_dir()).unwrap_or(false);
+                    
+                    if let Err(_) = trash::delete(&child_path) {
+                        if is_dir {
+                            let _ = fs::remove_dir_all(&child_path).await;
+                        } else {
+                            let _ = fs::remove_file(&child_path).await;
+                        }
                     }
                 }
+                
                 freed_space += loc.size;
-                let _ = fs::create_dir_all(&path).await;
+                // Invalidate this location from cache since we cleaned it
+                state.size_cache.lock().await.remove(&loc.path);
             }
         }
     }
