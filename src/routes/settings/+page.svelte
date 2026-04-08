@@ -2,6 +2,7 @@
   import { Settings, CheckCircle2, Monitor, Languages, HandMetal, Moon, Sun, Lock } from 'lucide-svelte';
   import { themeState } from '$lib/stores/theme.svelte';
   import { cleanerStore } from '$lib/stores/cleaner.svelte';
+  import { settingsStore } from '$lib/stores/settings.svelte';
 </script>
 
 <div class="flex-1 flex flex-col p-8 gap-8 overflow-y-auto w-full h-full">
@@ -79,6 +80,29 @@
               Restricted
             </span>
           </div>
+        </div>
+      </div>
+      
+      <div class="bg-card border border-border p-6 rounded-xl shadow-sm hover:border-primary/50 transition-colors">
+        <div class="flex items-center gap-3 mb-6">
+          <Lock class="text-primary w-6 h-6" />
+          <h3 class="text-xl font-semibold text-foreground">Deletion Security</h3>
+        </div>
+        <div class="flex items-center justify-between p-4 bg-neutral-900/50 rounded-lg">
+          <div>
+            <p class="font-medium">DoD 5220.22-M Shredding</p>
+            <p class="text-sm text-neutral-400">Multi-pass cryptographic overwrite bounds</p>
+          </div>
+          <button 
+            onclick={() => settingsStore.toggleShredding()}
+            class="p-3 bg-neutral-800 hover:bg-neutral-700 text-foreground rounded-lg transition-colors flex items-center gap-2 {settingsStore.useShredding ? 'text-red-500 border border-red-500/50' : ''}"
+          >
+            {#if settingsStore.useShredding}
+              <CheckCircle2 size={18} /> Enabled
+            {:else}
+              <CheckCircle2 size={18} class="opacity-30" /> Standard
+            {/if}
+          </button>
         </div>
       </div>
 

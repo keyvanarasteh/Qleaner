@@ -34,7 +34,6 @@ where
     }
 }
 
-#[cfg(feature = "dangerous-clean")]
 async fn secure_shred_file(path: &std::path::Path) -> std::io::Result<()> {
     if let Ok(metadata) = tokio::fs::metadata(path).await {
         if metadata.is_dir() { return Ok(()); }
@@ -220,6 +219,7 @@ pub async fn get_scan_results(state: State<'_, CleanerState>) -> Result<Vec<Cach
 pub async fn clean_items(
     items: Vec<String>,
     dry_run: Option<bool>,
+    use_shredding: Option<bool>,
     state: State<'_, CleanerState>,
     db_pool: State<'_, sqlx::SqlitePool>,
 ) -> Result<CleanResponse, CleanerError> {
@@ -322,8 +322,7 @@ pub async fn clean_items(
                     }
 
                     let mut use_trash = true;
-                    #[cfg(feature = "dangerous-clean")]
-                    {
+                    if use_shredding.unwrap_or(false) {
                         if !is_dir {
                             let _ = secure_shred_file(&child_path).await;
                             use_trash = false; // Bypass trash for thoroughly shredded blocks

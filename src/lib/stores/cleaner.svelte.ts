@@ -1,6 +1,7 @@
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
+import { settingsStore } from './settings.svelte';
 
 export interface CleanResponse {
     freed_bytes: number;
@@ -113,7 +114,7 @@ class CleanerStore {
     async simulateClean(ids: string[]): Promise<{ freed_bytes: number; files_deleted: number; errors: string[] } | null> {
         this.isCleaning = true;
         try {
-             return await invoke('clean_items', { items: ids, dryRun: true });
+             return await invoke('clean_items', { items: ids, dryRun: true, useShredding: settingsStore.useShredding });
         } catch (e) {
              console.error(e);
              toast.error(String(e));
@@ -126,7 +127,7 @@ class CleanerStore {
     async cleanItems(ids: string[]) {
         this.isCleaning = true;
         try {
-             const res: { freed_bytes: number; files_deleted: number; errors: string[] } = await invoke('clean_items', { items: ids, dryRun: false });
+             const res: { freed_bytes: number; files_deleted: number; errors: string[] } = await invoke('clean_items', { items: ids, dryRun: false, useShredding: settingsStore.useShredding });
              
              if (res.errors && res.errors.length > 0) {
                  for (const err of res.errors) {
