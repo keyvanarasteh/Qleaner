@@ -113,6 +113,19 @@ class CleanerStore {
             this.isCleaning = false;
         }
     }
+
+    toggleAll(checked: boolean) {
+        for (let i = 0; i < this.results.length; i++) {
+            this.results[i].selected = checked;
+        }
+    }
+
+    toggleItem(id: string, checked: boolean) {
+        const item = this.results.find(r => r.id === id);
+        if (item) {
+            item.selected = checked;
+        }
+    }
 }
 
 export const cleanerStore = new CleanerStore();

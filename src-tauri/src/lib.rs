@@ -1,8 +1,4 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
 
 mod cleaner;
 
@@ -16,6 +12,7 @@ pub fn run() {
             cleaner::get_scan_results,
             cleaner::clean_items,
             cleaner::get_system_stats,
+            cleaner::cancel_scan,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

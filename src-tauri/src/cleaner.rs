@@ -21,8 +21,6 @@ pub enum CleanerError {
     Io(#[from] std::io::Error),
     #[error("Trash error: {0}")]
     Trash(#[from] trash::Error),
-    #[error("Operation cancelled")]
-    Cancelled,
 }
 
 // Needed so Tauri can return CleanerError natively in invoke calls
@@ -225,23 +223,21 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
                 exists: false,
             });
         }
-    } else {
-        if let Some(cache_dir) = dirs::cache_dir() {
-            locations.push(CacheLocation {
-                id: "user_caches".into(),
-                path: cache_dir.to_string_lossy().to_string(),
-                name: "User Caches".into(),
-                description: "User cache directory (~/.cache)".into(),
-                category: "System".into(),
-                hint: "Speeds up loading times.".into(),
-                impact: "Apps will regenerate cache.".into(),
-                risk: "low".into(),
-                size: 0,
-                size_human: "0B".into(),
-                selected: true,
-                exists: false,
-            });
-        }
+    } else if let Some(cache_dir) = dirs::cache_dir() {
+        locations.push(CacheLocation {
+            id: "user_caches".into(),
+            path: cache_dir.to_string_lossy().to_string(),
+            name: "User Caches".into(),
+            description: "User cache directory (~/.cache)".into(),
+            category: "System".into(),
+            hint: "Speeds up loading times.".into(),
+            impact: "Apps will regenerate cache.".into(),
+            risk: "low".into(),
+            size: 0,
+            size_human: "0B".into(),
+            selected: true,
+            exists: false,
+        });
     }
 
     locations
@@ -388,7 +384,7 @@ pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> 
                     let child_path = entry.path();
                     let is_dir = entry.file_type().await.map(|t| t.is_dir()).unwrap_or(false);
                     
-                    if let Err(_) = trash::delete(&child_path) {
+                    if trash::delete(&child_path).is_err() {
                         if is_dir {
                             let _ = fs::remove_dir_all(&child_path).await;
                         } else {

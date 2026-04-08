@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { cleanerStore } from '$lib/stores/cleaner.svelte';
+	import NumberFlow from '@number-flow/svelte';
 	import { 
 		HardDrive, 
 		Cpu, 
@@ -62,8 +63,12 @@
 			</div>
 			<div>
 				<p class="text-sm font-medium text-neutral-400">CPU Usage</p>
-				<h3 class="text-2xl font-bold tracking-tight">
-					{cleanerStore.stats ? cleanerStore.stats.cpu_percent.toFixed(1) : '--'}%
+				<h3 class="text-2xl font-bold tracking-tight flex items-baseline">
+					{#if cleanerStore.stats}
+						<NumberFlow value={cleanerStore.stats.cpu_percent} format={{ maximumFractionDigits: 1 }} />%
+					{:else}
+						--%
+					{/if}
 				</h3>
 			</div>
 		</div>
@@ -74,9 +79,14 @@
 			</div>
 			<div>
 				<p class="text-sm font-medium text-neutral-400">Memory Used</p>
-				<h3 class="text-2xl font-bold tracking-tight">
-					{cleanerStore.stats ? cleanerStore.stats.memory.used_human : '--'}
-					<span class="text-sm font-normal text-neutral-500">of {cleanerStore.stats?.memory.total_human || '--'}</span>
+				<h3 class="text-2xl font-bold tracking-tight flex items-baseline gap-1">
+					{#if cleanerStore.stats}
+						<NumberFlow value={cleanerStore.stats.memory.used / 1073741824} format={{ maximumFractionDigits: 2 }} /> 
+						<span class="text-lg">GB</span>
+						<span class="text-sm font-normal text-neutral-500 ml-1">of {cleanerStore.stats.memory.total_human}</span>
+					{:else}
+						--
+					{/if}
 				</h3>
 			</div>
 		</div>
@@ -87,8 +97,13 @@
 			</div>
 			<div>
 				<p class="text-sm font-medium text-neutral-400">Storage Free</p>
-				<h3 class="text-2xl font-bold tracking-tight">
-					{cleanerStore.stats ? cleanerStore.stats.disk.free_human : '--'}
+				<h3 class="text-2xl font-bold tracking-tight flex items-baseline gap-1">
+					{#if cleanerStore.stats}
+						<NumberFlow value={cleanerStore.stats.disk.free / 1073741824} format={{ maximumFractionDigits: 1 }} />
+						<span class="text-lg">GB</span>
+					{:else}
+						--
+					{/if}
 				</h3>
 			</div>
 		</div>
@@ -97,17 +112,20 @@
 	<!-- Main Content Area -->
 	<div class="flex-1 min-h-0 flex flex-col gap-4">
 		{#if cleanerStore.isScanning}
-			<div class="bg-card border border-border rounded-xl p-8 flex flex-col items-center justify-center text-center">
-				<div class="relative w-24 h-24">
+			<div class="bg-card border border-border rounded-xl p-12 flex flex-col items-center justify-center text-center flex-1">
+				<div class="relative w-24 h-24 mb-4">
 					<div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
 					<div 
 						class="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"
 					></div>
 					<div class="absolute inset-0 flex items-center justify-center text-xl font-bold">
-						{cleanerStore.progress?.percent || 0}%
+						<NumberFlow value={cleanerStore.progress?.percent || 0} />%
 					</div>
 				</div>
 				<h3 class="text-xl font-semibold mt-6 mb-2">Analyzing Storage...</h3>
+				<div class="w-full max-w-md h-2 bg-neutral-800 rounded-full overflow-hidden mt-2 mb-4">
+					<div class="h-full bg-primary transition-all duration-300 ease-out" style="width: {cleanerStore.progress?.percent || 0}%"></div>
+				</div>
 				<p class="text-neutral-400 text-sm max-w-md truncate">
 					{cleanerStore.progress?.current_location || 'Initializing...'}
 				</p>
@@ -137,11 +155,8 @@
 									<input 
 										type="checkbox" 
 										class="rounded border-border bg-transparent text-primary focus:ring-primary h-4 w-4"
-										checked={cleanerStore.results.every(r => r.selected)}
-										onchange={(e) => {
-											const checked = e.currentTarget.checked;
-											cleanerStore.results.forEach(r => r.selected = checked);
-										}}
+										checked={cleanerStore.results.length > 0 && cleanerStore.results.every(r => r.selected)}
+										onchange={(e) => cleanerStore.toggleAll(e.currentTarget.checked)}
 									/>
 								</th>
 								<th class="px-6 py-4 font-medium text-neutral-400">Target</th>
@@ -157,7 +172,8 @@
 											<input 
 												type="checkbox" 
 												class="rounded border-border bg-transparent text-primary focus:ring-primary h-4 w-4"
-												bind:checked={item.selected}
+												checked={item.selected}
+												onchange={(e) => cleanerStore.toggleItem(item.id, e.currentTarget.checked)}
 											/>
 										</td>
 										<td class="px-6 py-4">
