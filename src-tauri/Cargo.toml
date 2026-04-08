@@ -33,3 +33,6 @@ ignore = "0.4.25"
 trash = "5.2.5"
 tokio-util = "0.7.18"
 thiserror = "2.0.18"
+
+[dev-dependencies]
+tempfile = "3.27.0"

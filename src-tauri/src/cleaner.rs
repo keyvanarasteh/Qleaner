@@ -141,6 +141,7 @@ pub fn get_directory_size(path: &Path) -> u64 {
     let total_size = std::sync::atomic::AtomicU64::new(0);
     WalkBuilder::new(path)
         .standard_filters(false)
+        .follow_links(false) // Task 16: Symlink Safeties
         .threads(std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4))
         .build_parallel()
         .run(|| {
@@ -195,9 +196,9 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
     } else if os == "windows" {
         locations.push(CacheLocation {
             id: "temp_files".into(),
-            path: std::env::var("TEMP").unwrap_or_else(|_| String::from("C:\\Windows\\Temp")),
+            path: std::env::temp_dir().to_string_lossy().to_string(), // Task 18: Custom Temporary Directory Fallbacks
             name: "Temporary Files".into(),
-            description: "Windows Temp folder".into(),
+            description: "System Temp folder".into(),
             category: "System".into(),
             hint: "Temporary files created by apps.".into(),
             impact: "Safe to delete.".into(),
@@ -382,7 +383,18 @@ pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> 
                 let mut read_dir = fs::read_dir(&path).await?;
                 while let Ok(Some(entry)) = read_dir.next_entry().await {
                     let child_path = entry.path();
-                    let is_dir = entry.file_type().await.map(|t| t.is_dir()).unwrap_or(false);
+                    
+                    // Task 13: Exclude locked files by handling metadata errors explicitly
+                    let Ok(file_type) = entry.file_type().await else {
+                        continue; 
+                    };
+                    
+                    // Task 16: Symlink Safeties (Do not traverse or delete symlinks)
+                    if file_type.is_symlink() {
+                        continue;
+                    }
+                    
+                    let is_dir = file_type.is_dir();
                     
                     if trash::delete(&child_path).is_err() {
                         if is_dir {
