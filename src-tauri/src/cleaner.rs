@@ -3,11 +3,12 @@ use serde::{Deserialize, Serialize};
 use std::{
     path::{Path, PathBuf},
     process::Command,
-    sync::{Arc, Mutex},
+    sync::{Mutex, OnceLock},
 };
 use sysinfo::{Disks, Networks, System};
-use walkdir::WalkDir;
+use ignore::WalkBuilder;
 use tauri::{AppHandle, Emitter, State};
+use tokio::fs;
 
 // ============================================================================
 // DATA STRUCTURES
@@ -70,23 +71,24 @@ pub struct ScanProgress {
 }
 
 // ============================================================================
-// STATE
+// GLOBALS & STATE
 // ============================================================================
 
+static SYSTEM: OnceLock<Mutex<System>> = OnceLock::new();
+static DISKS: OnceLock<Mutex<Disks>> = OnceLock::new();
+
 pub struct CleanerState {
-    pub scan_results: Mutex<Vec<CacheLocation>>,
-    pub scan_in_progress: Mutex<bool>,
-    pub system: Mutex<System>,
-    pub disks: Mutex<Disks>,
+    pub scan_results: tokio::sync::Mutex<Vec<CacheLocation>>,
+    pub scan_in_progress: tokio::sync::Mutex<bool>,
 }
 
 impl CleanerState {
     pub fn new() -> Self {
+        SYSTEM.get_or_init(|| Mutex::new(System::new_all()));
+        DISKS.get_or_init(|| Mutex::new(Disks::new_with_refreshed_list()));
         Self {
-            scan_results: Mutex::new(Vec::new()),
-            scan_in_progress: Mutex::new(false),
-            system: Mutex::new(System::new_all()),
-            disks: Mutex::new(Disks::new_with_refreshed_list()),
+            scan_results: tokio::sync::Mutex::new(Vec::new()),
+            scan_in_progress: tokio::sync::Mutex::new(false),
         }
     }
 }
@@ -113,13 +115,24 @@ pub fn human_readable_size(bytes: u64) -> String {
 }
 
 pub fn get_directory_size(path: &Path) -> u64 {
-    WalkDir::new(path)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter_map(|e| e.metadata().ok())
-        .filter(|m| m.is_file())
-        .map(|m| m.len())
-        .sum()
+    let total_size = std::sync::atomic::AtomicU64::new(0);
+    WalkBuilder::new(path)
+        .standard_filters(false)
+        .threads(std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4))
+        .build_parallel()
+        .run(|| {
+            Box::new(|result| {
+                if let Ok(entry) = result {
+                    if let Ok(metadata) = std::fs::symlink_metadata(entry.path()) {
+                        if metadata.is_file() {
+                            total_size.fetch_add(metadata.len(), std::sync::atomic::Ordering::Relaxed);
+                        }
+                    }
+                }
+                ignore::WalkState::Continue
+            })
+        });
+    total_size.into_inner()
 }
 
 pub fn get_cache_locations() -> Vec<CacheLocation> {
@@ -188,7 +201,6 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
             });
         }
     } else {
-        // linux
         if let Some(cache_dir) = dirs::cache_dir() {
             locations.push(CacheLocation {
                 id: "user_caches".into(),
@@ -216,7 +228,7 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
 
 #[tauri::command]
 pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Result<(), String> {
-    let mut in_progress = state.scan_in_progress.lock().unwrap();
+    let mut in_progress = state.scan_in_progress.lock().await;
     if *in_progress {
         return Ok(());
     }
@@ -225,73 +237,90 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
 
     let mut locations = get_cache_locations();
     let total = locations.len();
-    let mut found_count = 0;
-    let mut total_size = 0;
+    
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<ScanProgress>(64);
+    
+    let app_clone = app.clone();
+    tauri::async_runtime::spawn(async move {
+        while let Some(progress) = rx.recv().await {
+            let _ = app_clone.emit("scan-progress", progress);
+        }
+    });
 
-    for (i, loc) in locations.iter_mut().enumerate() {
-        let _ = app.emit("scan-progress", ScanProgress {
-            current: i,
+    let app_worker = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut found_count = 0;
+        let mut total_size = 0;
+
+        for (i, loc) in locations.iter_mut().enumerate() {
+            let _ = tx.send(ScanProgress {
+                current: i,
+                total,
+                percent: ((i as f32 / total as f32) * 100.0) as u8,
+                current_location: loc.path.clone(),
+                found_count,
+                total_size,
+            }).await;
+
+            let path = PathBuf::from(&loc.path);
+            loc.exists = fs::try_exists(&path).await.unwrap_or(false);
+            if loc.exists {
+                let size = tokio::task::spawn_blocking(move || {
+                    get_directory_size(&path)
+                }).await.unwrap_or(0);
+                
+                loc.size = size;
+                loc.size_human = human_readable_size(size);
+                if size > 0 {
+                    found_count += 1;
+                    total_size += size;
+                }
+            }
+            
+            tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
+        }
+
+        let state = app_worker.state::<CleanerState>();
+        let mut scan_results = state.scan_results.lock().await;
+        *scan_results = locations.clone();
+        
+        let mut in_progress = state.scan_in_progress.lock().await;
+        *in_progress = false;
+
+        let _ = tx.send(ScanProgress {
+            current: total,
             total,
-            percent: ((i as f32 / total as f32) * 100.0) as u8,
-            current_location: loc.path.clone(),
+            percent: 100,
+            current_location: "Scan complete".into(),
             found_count,
             total_size,
-        });
-
-        let path = PathBuf::from(&loc.path);
-        loc.exists = path.exists();
-        if loc.exists {
-            let size = get_directory_size(&path);
-            loc.size = size;
-            loc.size_human = human_readable_size(size);
-            if size > 0 {
-                found_count += 1;
-                total_size += size;
-            }
-        }
-        
-        // Simulating artificial delay for cool scanning effect
-        std::thread::sleep(std::time::Duration::from_millis(150));
-    }
-
-    // Finalize
-    let mut scan_results = state.scan_results.lock().unwrap();
-    *scan_results = locations.clone();
-    
-    let mut in_progress = state.scan_in_progress.lock().unwrap();
-    *in_progress = false;
-
-    let _ = app.emit("scan-progress", ScanProgress {
-        current: total,
-        total,
-        percent: 100,
-        current_location: "Scan complete".into(),
-        found_count,
-        total_size,
+        }).await;
     });
 
     Ok(())
 }
 
 #[tauri::command]
-pub fn get_scan_results(state: State<'_, CleanerState>) -> Vec<CacheLocation> {
-    state.scan_results.lock().unwrap().clone()
+pub async fn get_scan_results(state: State<'_, CleanerState>) -> Result<Vec<CacheLocation>, String> {
+    Ok(state.scan_results.lock().await.clone())
 }
 
 #[tauri::command]
 pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> Result<u64, String> {
-    let results = state.scan_results.lock().unwrap().clone();
+    let results = state.scan_results.lock().await.clone();
     let mut freed_space = 0;
 
     for id in items {
         if let Some(loc) = results.iter().find(|l| l.id == id) {
             let path = PathBuf::from(&loc.path);
-            if path.exists() {
-                if let Ok(_) = std::fs::remove_dir_all(&path) {
-                    freed_space += loc.size;
-                    // Recreate empty dir
-                    let _ = std::fs::create_dir_all(&path);
+            let exists = fs::try_exists(&path).await.unwrap_or(false);
+            if exists {
+                if let Err(_) = trash::delete(&path) {
+                    if let Ok(_) = fs::remove_dir_all(&path).await {
+                    }
                 }
+                freed_space += loc.size;
+                let _ = fs::create_dir_all(&path).await;
             }
         }
     }
@@ -300,13 +329,15 @@ pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> 
 }
 
 #[tauri::command]
-pub fn get_system_stats(state: State<'_, CleanerState>) -> SystemStats {
-    let mut sys = state.system.lock().unwrap();
-    let mut disks = state.disks.lock().unwrap();
+pub fn get_system_stats() -> SystemStats {
+    let mut sys = SYSTEM.get().expect("SYSTEM not initialized").lock().unwrap();
+    let mut disks = DISKS.get().expect("DISKS not initialized").lock().unwrap();
     
     sys.refresh_cpu_usage();
     sys.refresh_memory();
-    disks.refresh(true);
+    for disk in disks.list_mut() {
+        disk.refresh();
+    }
 
     let total_mem = sys.total_memory();
     let used_mem = sys.used_memory();
@@ -355,3 +386,4 @@ pub fn get_system_stats(state: State<'_, CleanerState>) -> SystemStats {
         }
     }
 }
+
