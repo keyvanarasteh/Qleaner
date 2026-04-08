@@ -1,5 +1,13 @@
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'svelte-sonner';
+
+export interface CleanResponse {
+    freed_bytes: number;
+    files_deleted: number;
+    errors: string[];
+}
+
 
 export type ScanProgress = {
   current: number;
@@ -101,14 +109,38 @@ class CleanerStore {
         }
     }
 
+    async simulateClean(ids: string[]): Promise<{ freed_bytes: number; files_deleted: number; errors: string[] } | null> {
+        this.isCleaning = true;
+        try {
+             return await invoke('clean_items', { items: ids, dryRun: true });
+        } catch (e) {
+             console.error(e);
+             toast.error(String(e));
+             return null;
+        } finally {
+            this.isCleaning = false;
+        }
+    }
+
     async cleanItems(ids: string[]) {
         this.isCleaning = true;
         try {
-             await invoke('clean_items', { items: ids });
+             const res: { freed_bytes: number; files_deleted: number; errors: string[] } = await invoke('clean_items', { items: ids, dryRun: false });
+             
+             if (res.errors && res.errors.length > 0) {
+                 for (const err of res.errors) {
+                     toast.error(err);
+                 }
+                 toast.warning(`Cleaned ${res.files_deleted} items with ${res.errors.length} errors.`);
+             } else {
+                 toast.success(`Successfully cleaned ${res.files_deleted} items.`);
+             }
+
              await this.fetchResults();
              await this.refreshStats();
         } catch (e) {
              console.error(e);
+             toast.error(String(e));
         } finally {
             this.isCleaning = false;
         }

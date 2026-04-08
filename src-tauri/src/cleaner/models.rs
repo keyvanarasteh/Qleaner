@@ -107,3 +107,10 @@ impl Default for CleanerState {
         Self::new()
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CleanResponse {
+    pub freed_bytes: u64,
+    pub files_deleted: u32,
+    pub errors: Vec<String>,
+}

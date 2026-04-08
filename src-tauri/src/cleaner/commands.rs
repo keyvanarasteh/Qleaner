@@ -5,7 +5,7 @@ use tokio::fs;
 use tokio_util::sync::CancellationToken;
 
 use super::error::CleanerError;
-use super::models::{CacheLocation, CleanerState, ScanProgress, SystemStats, MemoryStats, DiskStats, SYSTEM, DISKS};
+use super::models::{CacheLocation, CleanerState, ScanProgress, SystemStats, MemoryStats, DiskStats, SYSTEM, DISKS, CleanResponse};
 use super::scanner::{get_directory_size, human_readable_size};
 use super::detectors::{
     get_cache_locations, get_installed_bundle_ids, detect_container_orphans, 
@@ -145,23 +145,53 @@ pub async fn get_scan_results(state: State<'_, CleanerState>) -> Result<Vec<Cach
 }
 
 #[tauri::command]
-pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> Result<u64, CleanerError> {
+pub async fn clean_items(
+    items: Vec<String>,
+    dry_run: Option<bool>,
+    state: State<'_, CleanerState>,
+) -> Result<CleanResponse, CleanerError> {
+    let is_dry_run = dry_run.unwrap_or(false);
     let results = state.scan_results.lock().await.clone();
+    
     let mut freed_space = 0;
+    let mut files_deleted = 0;
+    let mut errors = Vec::new();
 
     for id in items {
         if let Some(loc) = results.iter().find(|l| l.id == id) {
             if loc.path.starts_with("docker://") {
-                perform_docker_clean(&loc.path).await;
+                if !is_dry_run {
+                    perform_docker_clean(&loc.path).await;
+                    state.size_cache.lock().await.remove(&loc.path);
+                }
                 freed_space += loc.size;
-                state.size_cache.lock().await.remove(&loc.path);
+                files_deleted += 1;
                 continue;
             }
 
             let path = PathBuf::from(&loc.path);
             let exists = fs::try_exists(&path).await.unwrap_or(false);
             if exists {
-                let mut read_dir = fs::read_dir(&path).await?;
+                if is_dry_run {
+                    freed_space += loc.size;
+                    // Count top level items that would be deleted
+                    if let Ok(mut read_dir) = fs::read_dir(&path).await {
+                        while let Ok(Some(_)) = read_dir.next_entry().await {
+                            files_deleted += 1;
+                        }
+                    }
+                    continue;
+                }
+
+                // Normal execution
+                let mut read_dir = match fs::read_dir(&path).await {
+                    Ok(rd) => rd,
+                    Err(e) => {
+                        errors.push(format!("Cannot read dir {}: {}", path.display(), e));
+                        continue;
+                    }
+                };
+                
                 while let Ok(Some(entry)) = read_dir.next_entry().await {
                     let child_path = entry.path();
                     
@@ -177,10 +207,20 @@ pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> 
                     
                     if trash::delete(&child_path).is_err() {
                         if is_dir {
-                            let _ = fs::remove_dir_all(&child_path).await;
+                            if let Err(e) = fs::remove_dir_all(&child_path).await {
+                                errors.push(format!("Failed deleting dir {}: {}", child_path.display(), e));
+                            } else {
+                                files_deleted += 1;
+                            }
                         } else {
-                            let _ = fs::remove_file(&child_path).await;
+                            if let Err(e) = fs::remove_file(&child_path).await {
+                                errors.push(format!("Failed deleting file {}: {}", child_path.display(), e));
+                            } else {
+                                files_deleted += 1;
+                            }
                         }
+                    } else {
+                        files_deleted += 1;
                     }
                 }
                 
@@ -190,7 +230,11 @@ pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> 
         }
     }
 
-    Ok(freed_space)
+    Ok(CleanResponse {
+        freed_bytes: freed_space,
+        files_deleted,
+        errors,
+    })
 }
 
 #[tauri::command]
