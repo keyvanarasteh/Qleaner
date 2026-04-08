@@ -12,6 +12,77 @@ use super::detectors::{
     detect_group_container_orphans, detect_preference_orphans, 
     detect_app_support_orphans, detect_launch_agent_orphans, detect_cache_orphans
 };
+use tokio::io::{AsyncWriteExt, AsyncSeekExt};
+
+async fn retry_remove<F, Fut>(mut action: F, max_attempts: u32) -> std::io::Result<()>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = std::io::Result<()>>,
+{
+    let mut attempts = 0;
+    loop {
+        match action().await {
+            Ok(_) => return Ok(()),
+            Err(e) => {
+                attempts += 1;
+                if attempts >= max_attempts {
+                    return Err(e);
+                }
+                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            }
+        }
+    }
+}
+
+#[cfg(feature = "dangerous-clean")]
+async fn secure_shred_file(path: &std::path::Path) -> std::io::Result<()> {
+    if let Ok(metadata) = tokio::fs::metadata(path).await {
+        if metadata.is_dir() { return Ok(()); }
+        let size = metadata.len();
+        if size == 0 { return Ok(()); }
+        
+        let chunk_size = size.min(1024 * 1024) as usize;
+        let mut f = tokio::fs::OpenOptions::new().write(true).open(path).await?;
+        
+        // Pass 1: Zeros
+        let zeros = vec![0u8; chunk_size];
+        let mut written = 0;
+        while written < size {
+            let to_write = (size - written).min(chunk_size as u64) as usize;
+            f.write_all(&zeros[..to_write]).await?;
+            written += to_write as u64;
+        }
+        f.sync_all().await?;
+
+        // Pass 2: Ones
+        let ones = vec![0xFFu8; chunk_size];
+        written = 0;
+        f.seek(std::io::SeekFrom::Start(0)).await?;
+        while written < size {
+            let to_write = (size - written).min(chunk_size as u64) as usize;
+            f.write_all(&ones[..to_write]).await?;
+            written += to_write as u64;
+        }
+        f.sync_all().await?;
+
+        // Pass 3: Random
+        written = 0;
+        f.seek(std::io::SeekFrom::Start(0)).await?;
+        use rand::RngCore;
+        let mut random_bytes = vec![0u8; chunk_size];
+        while written < size {
+            let to_write = (size - written).min(chunk_size as u64) as usize;
+            {
+                let mut rng = rand::thread_rng();
+                rng.fill_bytes(&mut random_bytes[..to_write]);
+            }
+            f.write_all(&random_bytes[..to_write]).await?;
+            written += to_write as u64;
+        }
+        f.sync_all().await?;
+    }
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn cancel_scan(state: State<'_, CleanerState>) -> Result<(), CleanerError> {
@@ -174,6 +245,11 @@ pub async fn clean_items(
         if let Some(loc) = results.iter().find(|l| l.id == id) {
             let path_lower = loc.path.to_lowercase();
             
+            if path_lower.contains("..") {
+                errors.push(format!("Path traversal blocked securely: {}", loc.path));
+                continue;
+            }
+            
             if is_chrome_running && (path_lower.contains("google/chrome") || path_lower.contains("google\\chrome")) {
                 errors.push(format!("Cannot clean Chrome cache while process is running: {}", loc.path));
                 continue;
@@ -235,15 +311,41 @@ pub async fn clean_items(
                     
                     let is_dir = file_type.is_dir();
                     
-                    if trash::delete(&child_path).is_err() {
+                    let file_name_lower = child_path.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
+                    if file_name_lower.ends_with(".db") || file_name_lower.ends_with(".sqlite") || file_name_lower == "cache.db" {
+                        let wal_path = child_path.with_extension("db-wal");
+                        let lock_path = child_path.with_extension("lock");
+                        if fs::try_exists(&wal_path).await.unwrap_or(false) || fs::try_exists(&lock_path).await.unwrap_or(false) {
+                            continue; // Prevent SQLite/DB corruption by skipping locked files
+                        }
+                    }
+
+                    let mut use_trash = true;
+                    #[cfg(feature = "dangerous-clean")]
+                    {
+                        if !is_dir {
+                            let _ = secure_shred_file(&child_path).await;
+                            use_trash = false; // Bypass trash for thoroughly shredded blocks
+                        }
+                    }
+                    
+                    let trashed = use_trash && trash::delete(&child_path).is_ok();
+                    
+                    if !trashed {
                         if is_dir {
-                            if let Err(e) = fs::remove_dir_all(&child_path).await {
+                            if let Err(e) = retry_remove(|| {
+                                let p = child_path.clone();
+                                async move { fs::remove_dir_all(&p).await }
+                            }, 3).await {
                                 errors.push(format!("Failed deleting dir {}: {}", child_path.display(), e));
                             } else {
                                 files_deleted += 1;
                             }
                         } else {
-                            if let Err(e) = fs::remove_file(&child_path).await {
+                            if let Err(e) = retry_remove(|| {
+                                let p = child_path.clone();
+                                async move { fs::remove_file(&p).await }
+                            }, 3).await {
                                 errors.push(format!("Failed deleting file {}: {}", child_path.display(), e));
                             } else {
                                 files_deleted += 1;
@@ -259,6 +361,8 @@ pub async fn clean_items(
             }
         }
     }
+
+    state.size_cache.lock().await.shrink_to_fit();
 
     Ok(CleanResponse {
         freed_bytes: freed_space,
@@ -429,6 +533,7 @@ pub async fn clean_leftovers(items: Vec<String>, state: State<'_, CleanerState>)
 
     for id in items {
         if let Some(loc) = results.iter().find(|l| l.id == id) {
+            if loc.path.contains("..") { continue; }
             let path = PathBuf::from(&loc.path);
             let exists = fs::try_exists(&path).await.unwrap_or(false);
             if exists {
