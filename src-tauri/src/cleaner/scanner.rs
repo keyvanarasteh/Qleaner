@@ -49,11 +49,16 @@ mod tests {
     #[test]
     fn test_human_readable_size() {
         assert_eq!(human_readable_size(0), "0 B");
-        assert_eq!(human_readable_size(500), "500 B");
+        assert_eq!(human_readable_size(1023), "1023 B");
         assert_eq!(human_readable_size(1024), "1.0 KB");
         assert_eq!(human_readable_size(1536), "1.5 KB");
         assert_eq!(human_readable_size(1048576), "1.0 MB");
         assert_eq!(human_readable_size(1073741824), "1.0 GB");
+        assert_eq!(human_readable_size(1099511627776), "1.0 TB");
+        assert_eq!(human_readable_size(1125899906842624), "1.0 PB");
+
+        // Edge case: Extremely large numbers don't exceed the units boundary
+        assert_eq!(human_readable_size(std::u64::MAX), "16384.0 PB");
     }
 
     #[test]
@@ -65,7 +70,17 @@ mod tests {
         fs::write(&path1, "Hello").unwrap(); // 5 bytes
         fs::write(&path2, "World!").unwrap(); // 6 bytes
 
+        // Nested directory
+        let nested_dir = dir.path().join("nested");
+        fs::create_dir(&nested_dir).unwrap();
+        let path3 = nested_dir.join("file3.txt");
+        fs::write(&path3, "12345").unwrap(); // 5 bytes
+
         let size = get_directory_size(dir.path());
-        assert_eq!(size, 11);
+        assert_eq!(size, 16); // 5 + 6 + 5 = 16 bytes
+
+        // Empty directory
+        let empty_dir = tempdir().unwrap();
+        assert_eq!(get_directory_size(empty_dir.path()), 0);
     }
 }

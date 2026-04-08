@@ -14,11 +14,8 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 77. **Sudo Policy Enforcer:** If macOS requires Full Disk Access, implement a watcher that detects lacking permissions and redirects the user to `System Settings -> Privacy`.
 78. **Sandboxed IFrame Documentation:** Move help texts and privacy policies to a segregated iframe without standard script contexts.
 81. **Cargo Clippy Pedantic:** Enforce `#![warn(clippy::pedantic)]` and `#![warn(clippy::unwrap_used)]` on the Rust codebase and fix the ~10 violations present.
-83. **Unit Tests (Rust):** Create `#[cfg(test)]` modules for `get_directory_size` and `human_readable_size` (testing bounds and edge cases).
-84. **File System Mocking:** Implement `tempfile::TempDir` to construct fake junk directories and test `clean_items` locally without nuking real system caches.
 85. **E2E Tests (Playwright):** Integrate Playwright for Tauri E2E testing to simulate UI clicks automatically spawning mocked Tauri commands.
 86. **Component Tests (Vitest):** Add `vitest` for the layout logic, specifically testing the reactivity of `$derived(totalSelectedSize)`.
-87. **GitHub Actions CI/CD:** Add `.github/workflows/build.yml` compiling binaries for `x86_64-pc-windows-msvc`, `aarch64-apple-darwin`, and Linux AppImage.
 90. **AppImage Builder (Linux):** Optimize Tauri config for modern Linux distributions with exact package exclusions.
 94. **Feature Flags Architecture:** Implement Cargo features (e.g., `#[cfg(feature = "dangerous-clean")]`) to gate highly destructive beta features.
 98. **Crash Reporting:** Integrate Sentry natively via `sentry-rust` and `sentry-javascript` to catch unhandled application panics remotely.
@@ -100,6 +97,12 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ---
 ## ✅ Completed Tasks (Archive)
 *Historical preservation of implemented milestones.*
+
+83. **Unit Tests (Rust):** Create `#[cfg(test)]` modules for `get_directory_size` and `human_readable_size` (testing bounds and edge cases).
+
+84. **File System Mocking:** Implement `tempfile::TempDir` to construct fake junk directories and test `clean_items` locally without nuking real system caches.
+
+87. **GitHub Actions CI/CD:** Add `.github/workflows/build.yml` compiling binaries for `x86_64-pc-windows-msvc`, `aarch64-apple-darwin`, and Linux AppImage.
 
 61. **Strict Content Security Policy (CSP):** The [+page.svelte](file:///home/drvoid/ISU/Qleaner/src/routes/+page.svelte) lacks CSP. Enforce rigid metas limiting `script-src` and `connect-src` specifically to Tauri IPC limits.
 
