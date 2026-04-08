@@ -62,7 +62,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 45. ** [DONE] Granular Expandable Rows:** The table only shows high-level (e.g., "User Caches"). Make rows expandable to show exactly which subdirectories take the most space. - *Implemented sub-folders display logic.*
 46. ** [DONE] Confirmation Modal Hierarchy:** Add a dangerous operation confirmation modal. Currently, clicking "Clean" immediately triggers deletion. - *Built bits-ui root modal confirmation dialogs.*
 47. ** [DONE] Svelte Runes Stores:** Migrate `cleanerStore` completely to a `class AppState { scan = $state() }` export pattern per the `Q-Static` standards. - *Switched all `$derived` into classes.*
-48. **Dynamic System Theming:** Reactively sync Tauri's native `appWindow.theme()` with the UI `data-theme` attribute (Dark/Light).
+48. ** [DONE] Dynamic System Theming:** Reactively sync Tauri's native `appWindow.theme()` with the UI `data-theme` attribute (Dark/Light). - *Bound system OS preferences and exposed manual toggle in layout.*
 49. ** [DONE] Bento Grid Layout:** Transition the flat 3-card stats layout into a modern asymmetrical Bento grid displaying CPU waveform, Space gauge, and Last Cleaned metrics. - *Completed custom CSS-grid implementation.*
 50. ** [DONE] Svelte Transitions:** Add `in:fade` and `out:fly` on table items so when they are cleaned, they elegantly slide out of the list. - *Fade and fly transitions enabled natively.*
 51. ** [DONE] Responsive Data-Tables:** The existing `table` is rigid on small windows. Migrate to a flex-based or grid-based responsive row architecture. - *Table overflows flexibly alongside media query queries.*
@@ -119,7 +119,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 94. **Feature Flags Architecture:** Implement Cargo features (e.g., `#[cfg(feature = "dangerous-clean")]`) to gate highly destructive beta features.
 95. **Rust Format Checks:** Automate `cargo fmt --check` in the pre-commit hook via husky.
 96. **Git LFS for Icons:** Store the `app-icon-real.png` (250KB) and other high-res assets in Git LFS instead of tracking raw blobs.
-97. **Internationalization (i18n):** Wrap raw strings ("Scanning...", "Target") using `paraglide` to prepare for multi-language rollouts.
+97. ** [DONE] Internationalization (i18n):** Wrap raw strings ("Scanning...", "Target") using `paraglide` to prepare for multi-language rollouts. - *Wired paraglide-sveltekit and added English language base.*
 98. **Crash Reporting:** Integrate Sentry natively via `sentry-rust` and `sentry-javascript` to catch unhandled application panics remotely.
 99. **Update Auto-Updater:** Enable Tauri's built-in updater system (`plugin-updater`) so users get the latest optimization engines directly.
 100. **Architectural Readme:** Completely rewrite `README.md` introducing the dual Svelte/Rust architecture, contribution guidelines, PR templates, and local dev spin-up instructions.
