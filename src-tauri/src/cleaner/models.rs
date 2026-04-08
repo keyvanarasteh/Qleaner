@@ -114,3 +114,12 @@ pub struct CleanResponse {
     pub files_deleted: u32,
     pub errors: Vec<String>,
 }
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct AuditHistoryItem {
+    pub id: i64,
+    pub path: String,
+    pub size_reclaimed: i64,
+    pub timestamp: String,
+    pub signature: String,
+}

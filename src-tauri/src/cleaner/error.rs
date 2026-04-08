@@ -6,6 +6,8 @@ pub enum CleanerError {
     Io(#[from] std::io::Error),
     #[error("Trash error: {0}")]
     Trash(#[from] trash::Error),
+    #[error("Database error: {0}")]
+    Database(String),
 }
 
 // Needed so Tauri can return CleanerError natively in invoke calls

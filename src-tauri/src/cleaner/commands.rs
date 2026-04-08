@@ -221,6 +221,7 @@ pub async fn clean_items(
     items: Vec<String>,
     dry_run: Option<bool>,
     state: State<'_, CleanerState>,
+    db_pool: State<'_, sqlx::SqlitePool>,
 ) -> Result<CleanResponse, CleanerError> {
     let mut sys = sysinfo::System::new_all();
     sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
@@ -358,6 +359,11 @@ pub async fn clean_items(
                 
                 freed_space += loc.size;
                 state.size_cache.lock().await.remove(&loc.path);
+                
+                if !is_dry_run {
+                    let secret = b"QleanerTelemetryCryptoIntegrity";
+                    let _ = super::db::insert_audit_log(&db_pool, &loc.path, loc.size, secret).await;
+                }
             }
         }
     }
@@ -527,7 +533,11 @@ pub async fn get_leftover_results(state: State<'_, CleanerState>) -> Result<Vec<
 }
 
 #[tauri::command]
-pub async fn clean_leftovers(items: Vec<String>, state: State<'_, CleanerState>) -> Result<u64, CleanerError> {
+pub async fn clean_leftovers(
+    items: Vec<String>, 
+    state: State<'_, CleanerState>,
+    db_pool: State<'_, sqlx::SqlitePool>,
+) -> Result<u64, CleanerError> {
     let results = state.leftover_results.lock().await.clone();
     let mut freed_space = 0;
 
@@ -547,12 +557,38 @@ pub async fn clean_leftovers(items: Vec<String>, state: State<'_, CleanerState>)
                         }
                     }
                     freed_space += loc.size;
+                    
+                    let secret = b"QleanerTelemetryCryptoIntegrity";
+                    let _ = super::db::insert_audit_log(&db_pool, &loc.path, loc.size, secret).await;
                 }
             }
         }
     }
 
     Ok(freed_space)
+}
+
+use sqlx::Row;
+
+#[tauri::command]
+pub async fn get_audit_logs(db_pool: tauri::State<'_, sqlx::SqlitePool>) -> Result<Vec<super::models::AuditHistoryItem>, super::error::CleanerError> {
+    let rows = sqlx::query("SELECT id, path, size_reclaimed, timestamp, signature FROM audit_logs ORDER BY timestamp DESC")
+        .fetch_all(&*db_pool)
+        .await
+        .map_err(|e| super::error::CleanerError::Database(e.to_string()))?;
+
+    let mut logs = Vec::new();
+    for row in rows {
+        logs.push(super::models::AuditHistoryItem {
+            id: row.try_get("id").unwrap_or(0i64),
+            path: row.try_get("path").unwrap_or_default(),
+            size_reclaimed: row.try_get("size_reclaimed").unwrap_or(0i64),
+            timestamp: row.try_get("timestamp").unwrap_or_default(),
+            signature: row.try_get("signature").unwrap_or_default(),
+        });
+    }
+
+    Ok(logs)
 }
 
 pub(crate) async fn fetch_docker_size(uri: &str) -> Option<u64> {

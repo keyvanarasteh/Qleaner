@@ -3,6 +3,7 @@ pub mod models;
 pub mod scanner;
 pub mod detectors;
 pub mod commands;
+pub mod db;
 
 pub use commands::*;
 pub use models::CleanerState;
