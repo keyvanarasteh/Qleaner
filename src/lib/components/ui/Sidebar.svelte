@@ -14,14 +14,16 @@
 
   let currentPath = $derived($page.url.pathname);
 
-  const mainNav = [
+  type ValidRoute = '/' | '/rules' | '/schedules' | '/settings' | '/about' | '/donate' | '/feedback';
+
+  const mainNav: Array<{name: string, path: ValidRoute, icon: any}> = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Rules', path: '/rules', icon: ShieldAlert },
     { name: 'Schedules', path: '/schedules', icon: CalendarClock },
     { name: 'Settings', path: '/settings', icon: Settings }
   ];
 
-  const bottomNav = [
+  const bottomNav: Array<{name: string, path: ValidRoute, icon: any}> = [
     { name: 'About', path: '/about', icon: Info },
     { name: 'Donate', path: '/donate', icon: Heart },
     { name: 'Feedback', path: '/feedback', icon: MessageSquare }
