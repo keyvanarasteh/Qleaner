@@ -195,8 +195,8 @@ pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> 
 
 #[tauri::command]
 pub fn get_system_stats() -> SystemStats {
-    let mut sys = SYSTEM.get().expect("SYSTEM not initialized").lock().unwrap();
-    let mut disks = DISKS.get().expect("DISKS not initialized").lock().unwrap();
+    let mut sys = SYSTEM.get().expect("SYSTEM not initialized").lock().unwrap_or_else(|e| e.into_inner());
+    let mut disks = DISKS.get().expect("DISKS not initialized").lock().unwrap_or_else(|e| e.into_inner());
     
     sys.refresh_cpu_usage();
     sys.refresh_memory();

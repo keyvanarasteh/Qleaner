@@ -10,10 +10,6 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 37. **Dry-Run Architecture:** Implement true dry-run scanning in Rust. Currently, [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301) just executes. Provide a simulation API to guarantee file counts.
 53. **Hover Context Menus:** Use `bits-ui` Dropdown to add right-click options to rows: "Open Folder Location", "Add to Ignore List", "View Properties".
 56. **Sortable Columns:** Add clickable headers (Target, Category, Size) to sort the `cleanerStore.results` dynamically based on `$derived` state.
-61. **Strict Content Security Policy (CSP):** The [+page.svelte](file:///home/drvoid/ISU/Qleaner/src/routes/+page.svelte) lacks CSP. Enforce rigid metas limiting `script-src` and `connect-src` specifically to Tauri IPC limits.
-63. **Scoped File System Access:** Ensure the Tauri API is strictly sandboxed. Never allow absolute path overrides from the frontend to [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301) – pass internal [id](file:///home/drvoid/Qix/Q-Static/src/lib/state/ui.svelte.ts#210-218) references instead.
-67. **Panic Recovery (Backend):** The `unwrap()` calls in `clean_items` (e.g., `state.scan_results.lock().unwrap()`) will crash the entire app if a thread poisons the lock. Handle mutex blocking safely.
-72. **Network Sandbox:** Qleaner currently requires no internet. Ensure `tauri.conf.json` fully disables all network/HTTP protocols.
 76. **Error Toast Notifications:** Instead of silently failing to delete an item, pipe exact Rust error messages up to a frontend `sonner` toast system.
 77. **Sudo Policy Enforcer:** If macOS requires Full Disk Access, implement a watcher that detects lacking permissions and redirects the user to `System Settings -> Privacy`.
 78. **Sandboxed IFrame Documentation:** Move help texts and privacy policies to a segregated iframe without standard script contexts.
@@ -104,6 +100,14 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ---
 ## ✅ Completed Tasks (Archive)
 *Historical preservation of implemented milestones.*
+
+61. **Strict Content Security Policy (CSP):** The [+page.svelte](file:///home/drvoid/ISU/Qleaner/src/routes/+page.svelte) lacks CSP. Enforce rigid metas limiting `script-src` and `connect-src` specifically to Tauri IPC limits.
+
+63. **Scoped File System Access:** Ensure the Tauri API is strictly sandboxed. Never allow absolute path overrides from the frontend to [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301) – pass internal [id](file:///home/drvoid/Qix/Q-Static/src/lib/state/ui.svelte.ts#210-218) references instead.
+
+67. **Panic Recovery (Backend):** The `unwrap()` calls in `clean_items` (e.g., `state.scan_results.lock().unwrap()`) will crash the entire app if a thread poisons the lock. Handle mutex blocking safely.
+
+72. **Network Sandbox:** Qleaner currently requires no internet. Ensure `tauri.conf.json` fully disables all network/HTTP protocols.
 111. **CLI Architecture Support:** Develop a completely headless **Command-Line Interface (CLI)** version of Qleaner strictly for scriptable DevOps deployment, Linux servers, and TUI power users (inspired by `ncdu` / `TreeSize`).
 25. **Docker Builder Pruning:** Hook into the Docker CLI/socket to report and clean dangling images, volumes, and builder caches.
 15. **Cross-Platform Privilege Manager:** Use `sudo` crate or native auth APIs (e.g., macOS `Authorization Services`) to securely elevate privileges for system-level junk cleaning.

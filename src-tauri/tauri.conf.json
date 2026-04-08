@@ -18,7 +18,10 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:1420; connect-src ipc: http://localhost:1420 ws://localhost:1420; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: tauri:; font-src 'self' data:; frame-src 'none'; object-src 'none';",
+      "macOS": {
+        "entitlements": "tauri.entitlements"
+      }
     }
   },
   "bundle": {
