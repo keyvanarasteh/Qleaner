@@ -4544,6 +4544,7 @@ dependencies = [
  "hex",
  "hmac",
  "ignore",
+ "libc",
  "rand 0.8.5",
  "regex",
  "serde",

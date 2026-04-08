@@ -15,6 +15,18 @@ use super::detectors::{
 };
 use tokio::io::{AsyncWriteExt, AsyncSeekExt};
 
+#[cfg(unix)]
+fn is_owned_by_current_user(meta: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    let current_uid = unsafe { libc::getuid() };
+    meta.uid() == current_uid
+}
+
+#[cfg(not(unix))]
+fn is_owned_by_current_user(_meta: &std::fs::Metadata) -> bool {
+    true
+}
+
 async fn retry_remove<F, Fut>(mut action: F, max_attempts: u32) -> std::io::Result<()>
 where
     F: FnMut() -> Fut,
@@ -306,6 +318,14 @@ pub async fn clean_items(
                     let Ok(file_type) = entry.file_type().await else {
                         continue; 
                     };
+                    
+                    if let Ok(meta) = entry.metadata().await {
+                        if !is_owned_by_current_user(&meta) {
+                            continue; // Skip root-owned caches gracefully
+                        }
+                    } else {
+                        continue;
+                    }
                     
                     if file_type.is_symlink() {
                         continue;

@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 109 | **Done:** 74 | **Ongoing:** 0 | **Pending:** 35
+> **Total Tasks:** 109 | **Done:** 75 | **Ongoing:** 0 | **Pending:** 34
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -27,7 +27,6 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ---
 ## ⚡ Tier 2: Medium Priority (Core Mechanics, Scanners & Competitor Vision)
 *Detection heuristics, deep system integrations, and multi-OS sweeps.*
-- [ ] **17.** **File Ownership Checks:** On Linux/macOS, check if `uid == current_uid` before trying to delete, skipping root-owned caches gracefully instead of throwing exceptions.
 - [ ] **21.** **Node.js Modules Sweeper:** Add dedicated scans for orphaned `node_modules` folders using [ignore](file:///home/drvoid/ISU/Qleaner/.gitignore) glob targeting within user space.
 - [ ] **22.** **NPM/Yarn/PNPM Cache:** Explicitly target `~/.npm`, `~/AppData/Local/npm-cache`, and `~/.local/share/pnpm/store`.
 - [ ] **23.** **Rust Cargo Cache:** Add scanning for `~/.cargo/registry` and `~/.cargo/git`.
@@ -77,6 +76,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 
 ---
 ## ✅ Completed Tasks (Archive)
+- [x] **17.** **File Ownership Checks:** On Linux/macOS, check if `uid == current_uid` before trying to delete, skipping root-owned caches gracefully instead of throwing exceptions.
 - [x] **60.** **Accessibility (A11y):** Form checkboxes lack `aria-label` or `<label>` wrapping. Add strict strict accessibility tags to the data grid.
 - [x] **129.** **UX Coverage (Network Velocity Sensors):** Expand the dashboard dynamically injecting `sysinfo::Networks` mapped network bandwidth states rendering alongside the OS CPU metrics synchronously.
 - [x] **128.** **UX Coverage (Privacy Isolation Panel):** The UX needs visual filtering mechanisms or badges sorting natively over privacy footprints compared to generic caches transparently displaying severity.
