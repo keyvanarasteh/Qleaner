@@ -2,6 +2,16 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--cli") {
+        sudo::escalate_if_needed().expect("Failed to escalate privileges");
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            tauri_app_lib::cli::execute().await;
+        });
+        return;
+    }
+
     // Elevate privileges natively (UAC on Windows, Pkexec/Sudo on Linux, Osascript on Mac)
     // Required to gain access to system-level directory sweeps (e.g. Windows Prefetch)
     sudo::escalate_if_needed().expect("Failed to escalate privileges");

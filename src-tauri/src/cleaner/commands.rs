@@ -375,7 +375,7 @@ pub async fn clean_leftovers(items: Vec<String>, state: State<'_, CleanerState>)
     Ok(freed_space)
 }
 
-async fn fetch_docker_size(uri: &str) -> Option<u64> {
+pub(crate) async fn fetch_docker_size(uri: &str) -> Option<u64> {
     if let Ok(output) = tokio::process::Command::new("docker").args(&["system", "df", "--format", "{{json .}}"]).output().await {
         if let Ok(stdout) = String::from_utf8(output.stdout) {
             let target_type = match uri {
@@ -401,7 +401,7 @@ async fn fetch_docker_size(uri: &str) -> Option<u64> {
     None
 }
 
-async fn perform_docker_clean(uri: &str) {
+pub(crate) async fn perform_docker_clean(uri: &str) {
     match uri {
         "docker://build_cache" => {
             let _ = tokio::process::Command::new("docker").args(&["builder", "prune", "-a", "-f"]).output().await;

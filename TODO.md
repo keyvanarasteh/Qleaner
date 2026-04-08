@@ -32,7 +32,6 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 109. ** [BACKLOG] Universal Target Builds:** Scale the Linux actions explicitly for Ubuntu/Debian `.deb`, Fedora `.rpm`, Arch `.pacman` distributions alongside Apple notarization and Windows code signing.
 110. ** [BACKLOG] Production Telemetry:** Evaluate privacy-respecting mechanisms for telemetry logging and crash dumps to monitor application stability natively.
 *Based on the competitive landscape observed in `docs/vison.html` mapping 30 top-tier disk utilities (e.g., CleanMyMac, BleachBit, DaisyDisk).*
-111. **CLI Architecture Support:** Develop a completely headless **Command-Line Interface (CLI)** version of Qleaner strictly for scriptable DevOps deployment, Linux servers, and TUI power users (inspired by `ncdu` / `TreeSize`).
 118. **Malware & Security Analysis (Malware):** Add baseline YARA scanning or static malware signature detection against cache payloads looking for common miners or rogue binaries (inspired by `Advanced SystemCare`).
 
 ---
@@ -105,6 +104,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ---
 ## ✅ Completed Tasks (Archive)
 *Historical preservation of implemented milestones.*
+111. **CLI Architecture Support:** Develop a completely headless **Command-Line Interface (CLI)** version of Qleaner strictly for scriptable DevOps deployment, Linux servers, and TUI power users (inspired by `ncdu` / `TreeSize`).
 25. **Docker Builder Pruning:** Hook into the Docker CLI/socket to report and clean dangling images, volumes, and builder caches.
 15. **Cross-Platform Privilege Manager:** Use `sudo` crate or native auth APIs (e.g., macOS `Authorization Services`) to securely elevate privileges for system-level junk cleaning.
 1. ** [DONE] Remove Synchronous Blocking:** Replace `std::thread::sleep(150)` with `tokio::time::sleep` – the current implementation blocks the Tauri command pool. - *Replaced `std::thread::sleep` with `tokio::time::sleep` to unblock IPC thread.*
