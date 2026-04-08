@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 101 | **Done:** 27 | **Ongoing:** 1 | **Pending:** 73
+> **Total Tasks:** 105 | **Done:** 31 | **Ongoing:** 1 | **Pending:** 73
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -153,3 +153,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - **104.** ** [DONE] Kadir's UX PRs:** Integrated beautiful UX aesthetics, hover semantics, and Bento grids inspired by Kadir's Qapri implementations.
 - **105.** ** [DONE] System Tray Menu:** Activated Tauri native tray daemon featuring background running capability and instant `Open` / `Clean Now` controls.
 - **106.** ** [DONE] Frontend Feature Exhaustion:** Implemented `paraglide-sveltekit` i18n, custom layout OS themes, and full SvelteKit paths for `/feedback`, `/donate`, and `/about`.
+- [x] **122.** **Theme Mode Toggle:** Implemented native system theme mode UI toggle mapping to OS values inside the structured Sidebar and Settings.
+- [x] **123.** **Settings Permissions & Language Panel:** Display standard user permissions (File System, Network) and Paraglide Language selection natively inside the Preferences menu.
+- [x] **124.** **OS Environment Status:** Track CPU mapping, architecture, and live memory state straight from Tauri plugins directly inside the Settings layout.
+- [x] **125.** **Architecture Constraints Sync:** Mapped out QDebugger agent directives (Svelte/Tauri skills & workflows) explicitly inside AGENTS.md and GEMINI.md.
