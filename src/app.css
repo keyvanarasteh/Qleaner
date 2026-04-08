@@ -18,6 +18,18 @@
 
 @layer base {
   :root {
+    --background: #ffffff;
+    --foreground: #09090b;
+    --card: #f4f4f5;
+    --card-foreground: #09090b;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --border: #e4e4e7;
+    --accent: #f4f4f5;
+    --accent-foreground: #09090b;
+  }
+  
+  .dark {
     --background: #09090b;
     --foreground: #fafafa;
     --card: #141416;

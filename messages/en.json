@@ -1,0 +1,11 @@
+{
+    "$schema": "https://inlang.com/schema/inlang-message-format",
+    "about_title": "About Qleaner",
+    "clean_button": "Clean Now",
+    "open_button": "Open",
+    "quit_button": "Quit",
+    "leftovers_detected": "Leftovers Detected",
+    "support_us": "Support Us",
+    "feedback": "Feedback",
+    "donate": "Donate"
+}
