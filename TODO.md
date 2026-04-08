@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 109 | **Done:** 73 | **Ongoing:** 0 | **Pending:** 36
+> **Total Tasks:** 109 | **Done:** 74 | **Ongoing:** 0 | **Pending:** 35
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -66,7 +66,6 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [ ] **42.** **Virtual Listicles:** The table renders every row. If thousands of junk locations are found, the DOM will lag. Implement `svelte-virtual-list`.
 - [ ] **55.** **Sticky Table Headers:** Ensure the `thead` uses `z-index` and `backdrop-blur` properly behind overflowing content inside a constrained wrapper.
 - [ ] **59.** **Keyboard Shortcuts:** Implement `svelte-window` keyboard listeners (e.g., `CMD+Enter` to start cleaning, `Esc` to cancel).
-- [ ] **60.** **Accessibility (A11y):** Form checkboxes lack `aria-label` or `<label>` wrapping. Add strict strict accessibility tags to the data grid.
 - [ ] **82.** **ESLint & Prettier Strictness:** The Svelte app lacks the `@typescript-eslint/recommended-requiring-type-checking` rule set.
 - [ ] **88.** **Release Bump Pipeline:** Create a script (via `release-plz` or `standard-version`) to automate bumping version parity between `package.json` and `Cargo.toml`.
 - [ ] **92.** **Vite Bundle Optimization:** Optimize `vite.config.js` to split `lucide-svelte` and `bits-ui` chunks to shrink the V8 snapshot load time.
@@ -78,6 +77,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 
 ---
 ## ✅ Completed Tasks (Archive)
+- [x] **60.** **Accessibility (A11y):** Form checkboxes lack `aria-label` or `<label>` wrapping. Add strict strict accessibility tags to the data grid.
 - [x] **129.** **UX Coverage (Network Velocity Sensors):** Expand the dashboard dynamically injecting `sysinfo::Networks` mapped network bandwidth states rendering alongside the OS CPU metrics synchronously.
 - [x] **128.** **UX Coverage (Privacy Isolation Panel):** The UX needs visual filtering mechanisms or badges sorting natively over privacy footprints compared to generic caches transparently displaying severity.
 - [x] **126.** **UX Coverage (SQLite Schedules CRUD):** Connect the UI `/schedules` page via Tauri IPC to actively leverage the existing `sqlx` database configuration setting automated background sweeping.

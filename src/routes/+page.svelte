@@ -260,6 +260,7 @@
 								<th class="px-6 py-4 font-medium text-neutral-400 w-12">
 									<input 
 										type="checkbox" 
+										aria-label="Select all targets"
 										class="rounded border-border bg-transparent text-primary focus:ring-primary h-4 w-4"
 										checked={cleanerStore.results.length > 0 && cleanerStore.results.every(r => r.selected)}
 										onchange={(e) => cleanerStore.toggleAll(e.currentTarget.checked)}
@@ -284,6 +285,7 @@
 										<td class="px-6 py-4">
 											<input 
 												type="checkbox" 
+												aria-label="Select {item.name}"
 												class="rounded border-border bg-transparent text-primary focus:ring-primary h-4 w-4"
 												checked={item.selected}
 												onchange={(e) => cleanerStore.toggleItem(item.id, e.currentTarget.checked)}
