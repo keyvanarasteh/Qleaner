@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 109 | **Done:** 81 | **Ongoing:** 0 | **Pending:** 28
+> **Total Tasks:** 109 | **Done:** 83 | **Ongoing:** 0 | **Pending:** 26
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -29,13 +29,11 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 *Detection heuristics, deep system integrations, and multi-OS sweeps.*
 - [ ] **21.** **Node.js Modules Sweeper:** Add dedicated scans for orphaned `node_modules` folders using [ignore](file:///home/drvoid/ISU/Qleaner/.gitignore) glob targeting within user space.
 - [ ] **24.** **Rust Target Sweeper:** Detect redundant `target/debug` directories in inactive Rust projects using heuristic age-based scanning.
-- [ ] **26.** **macOS Xcode DerivedData:** Add `~/Library/Developer/Xcode/DerivedData` for massive storage recovery on macOS.
 - [ ] **27.** **macOS iOS Simulators:** Scan and clear outdated iOS simulator caches (`~/Library/Developer/CoreSimulator/Devices`).
 - [ ] **29.** **Windows Prefetch:** Add `C:\Windows\Prefetch` analysis.
 - [ ] **30.** **Linux Journalctl Size:** Scan via `journalctl --disk-usage` and offer to vacuum logs older than X days.
 - [ ] **31.** **Linux Flatpak/Snap Leftovers:** Target `.var/app/` caches and `snap` leftover blobs.
 - [ ] **32.** **Browser Forensic Cache:** Add distinct targets for Chrome, Firefox, Safari, Edge caches, separate from generic "User Caches".
-- [ ] **33.** **Discord / Slack Cache:** Target Electron app cache folders (e.g., `~/Library/Application Support/Discord/Cache`).
 - [ ] **34.** **Empty Directory Sweeper:** Add an optional pass that identifies deeply nested, entirely empty directory trees and prunes them.
 - [ ] **36.** **Time-based Filtering:** Allow the user to specify "Only clean files older than X days" (e.g., keep caches from the last 24 hours).
 - [ ] **38.** **Configurable Ignoring:** Add a global `.qleanerignore` list to explicitly block directories from ever being scanned or listed.
@@ -70,6 +68,8 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 
 ---
 ## ✅ Completed Tasks (Archive)
+- [x] **26.** **macOS Xcode DerivedData:** Add `~/Library/Developer/Xcode/DerivedData` for massive storage recovery on macOS.
+- [x] **33.** **Discord / Slack Cache:** Target Electron app cache folders (e.g., `~/Library/Application Support/Discord/Cache`).
 - [x] **22.** **NPM/Yarn/PNPM Cache:** Explicitly target `~/.npm`, `~/AppData/Local/npm-cache`, and `~/.local/share/pnpm/store`.
 - [x] **23.** **Rust Cargo Cache:** Add scanning for `~/.cargo/registry` and `~/.cargo/git`.
 - [x] **58.** **Native OS Window Controls:** Add custom `titlebar` integration (via `<div data-tauri-drag-region>`) using Lucide icons for macOS/Windows custom decorators.

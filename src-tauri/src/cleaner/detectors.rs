@@ -175,6 +175,44 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
         });
     }
 
+    if os == "macos" {
+        locations.push(CacheLocation {
+            id: "xcode_derived_data".into(),
+            path: home.join("Library/Developer/Xcode/DerivedData").to_string_lossy().to_string(),
+            name: "Xcode DerivedData".into(),
+            description: "Massive compilation intermediates for iOS/macOS apps".into(),
+            category: "Developer".into(),
+            hint: "Xcode recreates these transparently on next build.".into(),
+            impact: "Next xcodebuild will be slower.".into(),
+            risk: "low".into(),
+            size: 0, size_human: "0B".into(), selected: true, exists: false,
+        });
+    }
+
+    let config_dir = dirs::config_dir().unwrap_or(home.clone());
+    locations.push(CacheLocation {
+        id: "discord_cache".into(),
+        path: config_dir.join("discord").join("Cache").to_string_lossy().to_string(),
+        name: "Discord Cache".into(),
+        description: "Electron application cache for Discord".into(),
+        category: "User Apps".into(),
+        hint: "Contains media files, avatars, and attachments.".into(),
+        impact: "Next startup might take slightly longer to fetch avatars.".into(),
+        risk: "low".into(),
+        size: 0, size_human: "0B".into(), selected: true, exists: false,
+    });
+    locations.push(CacheLocation {
+        id: "slack_cache".into(),
+        path: config_dir.join("Slack").join("Cache").to_string_lossy().to_string(),
+        name: "Slack Cache".into(),
+        description: "Electron application cache for Slack".into(),
+        category: "User Apps".into(),
+        hint: "Clear if Slack is consuming large storage.".into(),
+        impact: "Initial workspace loads will re-download assets.".into(),
+        risk: "low".into(),
+        size: 0, size_human: "0B".into(), selected: true, exists: false,
+    });
+
     // --- Developer Caches (NPM, Yarn, PNPM, Rust Cargo) ---
     // NPM
     let npm_path = if os == "windows" {
