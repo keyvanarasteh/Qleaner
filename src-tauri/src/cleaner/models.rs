@@ -39,6 +39,7 @@ pub struct LeftoverItem {
 pub struct SystemStats {
     pub cpu_percent: f32,
     pub cpu_count: usize,
+    pub cpu_temp: f32,
     pub memory: MemoryStats,
     pub disk: DiskStats,
 }

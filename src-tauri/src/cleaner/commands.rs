@@ -413,9 +413,20 @@ pub fn get_system_stats() -> SystemStats {
         0.0
     };
 
+    let components = sysinfo::Components::new_with_refreshed_list();
+    let mut cpu_temp = 0.0;
+    for component in &components {
+        let label = component.label().to_lowercase();
+        if label.contains("cpu") || label.contains("core") || label.contains("tctl") {
+            cpu_temp = component.temperature().unwrap_or(0.0);
+            break;
+        }
+    }
+
     SystemStats {
         cpu_percent: sys.global_cpu_usage(),
         cpu_count: sys.cpus().len(),
+        cpu_temp,
         memory: MemoryStats {
             total: total_mem,
             used: used_mem,

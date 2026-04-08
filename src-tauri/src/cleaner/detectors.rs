@@ -44,6 +44,30 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
             selected: true,
             exists: false,
         });
+
+        let chrome_support = home.join("Library/Application Support/Google/Chrome/Default");
+        locations.push(CacheLocation {
+            id: "chrome_history".into(),
+            path: chrome_support.join("History").to_string_lossy().to_string(),
+            name: "Chrome Privacy History".into(),
+            description: "Deep tracking domains, form entries and URL analytics".into(),
+            category: "Privacy".into(),
+            hint: "Blocks targeted analytics matching your activity securely.".into(),
+            impact: "Chrome search autocompletes will fully reset".into(),
+            risk: "medium".into(),
+            size: 0, size_human: "0B".into(), selected: false, exists: false,
+        });
+        locations.push(CacheLocation {
+            id: "chrome_extensions_telemetry".into(),
+            path: chrome_support.join("Extensions").to_string_lossy().to_string(),
+            name: "Chrome Extensions Telemetry".into(),
+            description: "Accumulated diagnostic .trace and .log payloads inside extensions".into(),
+            category: "Privacy".into(),
+            hint: "Removes developer traces potentially logging API traffic".into(),
+            impact: "Safe to clean. Non-vital extension cache wipes".into(),
+            risk: "low".into(),
+            size: 0, size_human: "0B".into(), selected: true, exists: false,
+        });
     } else if os == "windows" {
         locations.push(CacheLocation {
             id: "temp_files".into(),
