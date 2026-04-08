@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::fs;
 use tokio_util::sync::CancellationToken;
+use anyhow::Context;
 
 use super::error::CleanerError;
 use super::models::{CacheLocation, CleanerState, ScanProgress, SystemStats, MemoryStats, DiskStats, NetworkStats, SYSTEM, DISKS, NETWORKS, CleanResponse};
@@ -600,7 +601,7 @@ pub async fn get_audit_logs(db_pool: tauri::State<'_, sqlx::SqlitePool>) -> Resu
     let rows = sqlx::query("SELECT id, path, size_reclaimed, timestamp, signature FROM audit_logs ORDER BY timestamp DESC")
         .fetch_all(&*db_pool)
         .await
-        .map_err(|e| super::error::CleanerError::Database(e.to_string()))?;
+        .context("Failed retrieving audit logs from SQLite")?;
     let mut logs = Vec::new();
     for row in rows {
         logs.push(super::models::AuditHistoryItem {
@@ -620,7 +621,7 @@ pub async fn get_schedules(db_pool: tauri::State<'_, sqlx::SqlitePool>) -> Resul
     let rows = sqlx::query("SELECT id, cron_expr, is_active FROM schedules ORDER BY id ASC")
         .fetch_all(&*db_pool)
         .await
-        .map_err(|e| super::error::CleanerError::Database(e.to_string()))?;
+        .context("Failed loading scheduling entries from SQLite")?;
         
     let mut schedules = Vec::new();
     for row in rows {
@@ -639,7 +640,7 @@ pub async fn add_schedule(db_pool: tauri::State<'_, sqlx::SqlitePool>, cron_expr
         .bind(cron_expr)
         .execute(&*db_pool)
         .await
-        .map_err(|e| super::error::CleanerError::Database(e.to_string()))?;
+        .context("Failed deleting schedule target row from robust SQLite stores")?;
     Ok(())
 }
 
@@ -649,7 +650,7 @@ pub async fn delete_schedule(db_pool: tauri::State<'_, sqlx::SqlitePool>, id: i6
         .bind(id)
         .execute(&*db_pool)
         .await
-        .map_err(|e| super::error::CleanerError::Database(e.to_string()))?;
+        .context("Failed toggling active state of SQL configurations properly")?;
     Ok(())
 }
 
@@ -660,7 +661,7 @@ pub async fn toggle_schedule(db_pool: tauri::State<'_, sqlx::SqlitePool>, id: i6
         .bind(id)
         .execute(&*db_pool)
         .await
-        .map_err(|e| super::error::CleanerError::Database(e.to_string()))?;
+        .context("Failed inserting automated scheduled sweep into database")?;
     Ok(())
 }
 
