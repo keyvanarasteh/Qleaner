@@ -21,6 +21,21 @@ pub struct CacheLocation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LeftoverItem {
+    pub id: String,
+    pub path: String,
+    pub name: String,
+    pub bundle_id: String,
+    pub detection_source: String,
+    pub category: String,
+    pub confidence: String,
+    pub hint: String,
+    pub size: u64,
+    pub size_human: String,
+    pub selected: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemStats {
     pub cpu_percent: f32,
     pub cpu_count: usize,
@@ -66,6 +81,8 @@ pub static DISKS: OnceLock<Mutex<Disks>> = OnceLock::new();
 pub struct CleanerState {
     pub scan_results: tokio::sync::Mutex<Vec<CacheLocation>>,
     pub scan_in_progress: tokio::sync::Mutex<bool>,
+    pub leftover_results: tokio::sync::Mutex<Vec<LeftoverItem>>,
+    pub leftover_scan_in_progress: tokio::sync::Mutex<bool>,
     pub cancel_token: tokio::sync::Mutex<CancellationToken>,
     pub size_cache: tokio::sync::Mutex<HashMap<String, u64>>,
 }
@@ -77,6 +94,8 @@ impl CleanerState {
         Self {
             scan_results: tokio::sync::Mutex::new(Vec::new()),
             scan_in_progress: tokio::sync::Mutex::new(false),
+            leftover_results: tokio::sync::Mutex::new(Vec::new()),
+            leftover_scan_in_progress: tokio::sync::Mutex::new(false),
             cancel_token: tokio::sync::Mutex::new(CancellationToken::new()),
             size_cache: tokio::sync::Mutex::new(HashMap::new()),
         }

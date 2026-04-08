@@ -13,6 +13,9 @@ pub fn run() {
             cleaner::clean_items,
             cleaner::get_system_stats,
             cleaner::cancel_scan,
+            cleaner::start_leftover_scan,
+            cleaner::get_leftover_results,
+            cleaner::clean_leftovers,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

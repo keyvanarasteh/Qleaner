@@ -1,0 +1,301 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.wrap{padding:1rem 0}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem;align-items:center}
+.controls input{flex:1;min-width:180px;max-width:320px;padding:6px 10px;font-size:13px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary)}
+.filter-btns{display:flex;flex-wrap:wrap;gap:6px}
+.fb{padding:4px 10px;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary)}
+.fb.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.tbl-wrap{overflow-x:auto;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg)}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+th{background:var(--color-background-secondary);font-weight:500;font-size:11px;color:var(--color-text-secondary);padding:8px 10px;text-align:left;border-bottom:0.5px solid var(--color-border-tertiary);white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--color-text-primary)}
+td{padding:7px 10px;border-bottom:0.5px solid var(--color-border-tertiary);vertical-align:top;color:var(--color-text-primary);line-height:1.4}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--color-background-secondary)}
+.name{font-weight:500;font-size:12px}
+.tagline{font-size:11px;color:var(--color-text-secondary)}
+.badge{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;margin:1px}
+.b-free{background:#EAF3DE;color:#3B6D11}
+.b-paid{background:#FAECE7;color:#993C1D}
+.b-fp{background:#E1F5EE;color:#0F6E56}
+.b-sub{background:#EEEDFE;color:#534AB7}
+.tick{color:#1D9E75;font-size:13px}
+.cross{color:#c0c0c0;font-size:13px}
+.plat{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;margin:1px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary)}
+.price{font-size:11px;color:var(--color-text-secondary)}
+.count{font-size:12px;color:var(--color-text-secondary);padding:0.5rem 0}
+.sort-arrow{font-size:9px;margin-left:3px}
+col.c0{width:160px}
+col.c1{width:80px}
+col.c2{width:90px}
+col.c3{width:50px}
+col.c4{width:50px}
+col.c5{width:50px}
+col.c6{width:50px}
+col.c7{width:50px}
+col.c8{width:50px}
+col.c9{width:50px}
+col.c10{width:50px}
+col.c11{width:50px}
+col.c12{width:50px}
+col.c13{width:120px}
+</style>
+<div class="wrap">
+<h2 class="sr-only">Top 30 disk space cleaner and trash cleaner apps for Linux, Windows, and Mac — interactive filterable table with features and pricing</h2>
+<div class="controls">
+  <input id="search" placeholder="Search by name or feature..." oninput="render()">
+  <div class="filter-btns">
+    <button class="fb active" data-f="all" onclick="setFilter('all',this)">All (30)</button>
+    <button class="fb" data-f="linux" onclick="setFilter('linux',this)">Linux</button>
+    <button class="fb" data-f="win" onclick="setFilter('win',this)">Windows</button>
+    <button class="fb" data-f="mac" onclick="setFilter('mac',this)">macOS</button>
+    <button class="fb" data-f="free" onclick="setFilter('free',this)">Free / OSS</button>
+    <button class="fb" data-f="cross" onclick="setFilter('cross',this)">Cross-platform</button>
+  </div>
+</div>
+<div class="count" id="count">Showing 30 apps</div>
+<div class="tbl-wrap">
+<table>
+<colgroup>
+  <col class="c0"><col class="c1"><col class="c2"><col class="c3"><col class="c4">
+  <col class="c5"><col class="c6"><col class="c7"><col class="c8"><col class="c9">
+  <col class="c10"><col class="c11"><col class="c12"><col class="c13">
+</colgroup>
+<thead>
+<tr>
+  <th onclick="sortBy(0)">App <span class="sort-arrow" id="sa0"></span></th>
+  <th onclick="sortBy(1)">Platforms <span class="sort-arrow" id="sa1"></span></th>
+  <th onclick="sortBy(2)">License / Price <span class="sort-arrow" id="sa2"></span></th>
+  <th onclick="sortBy(3)" title="Junk / Cache Clean">Junk</th>
+  <th onclick="sortBy(4)" title="Duplicate Finder">Dupes</th>
+  <th onclick="sortBy(5)" title="Disk Usage Visualization">Viz</th>
+  <th onclick="sortBy(6)" title="Registry Cleaner">Reg</th>
+  <th onclick="sortBy(7)" title="Startup Manager">Start</th>
+  <th onclick="sortBy(8)" title="App Uninstaller">Uninst</th>
+  <th onclick="sortBy(9)" title="Privacy / Browser Clean">Privacy</th>
+  <th onclick="sortBy(10)" title="File Shredder / Secure Delete">Shred</th>
+  <th onclick="sortBy(11)" title="Malware / Security Scan">Malware</th>
+  <th onclick="sortBy(12)" title="CLI / Scriptable">CLI</th>
+  <th>Notes</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+</div>
+<script>
+const T='<span class="tick">✓</span>', F='<span class="cross">–</span>';
+const apps=[
+  {name:"BleachBit",tagline:"OSS junk & privacy cleaner",win:1,mac:0,linux:1,free:1,cross:1,
+   license:"Free / Open Source",price:"$0",
+   junk:1,dupes:0,viz:0,reg:0,start:0,uninst:0,privacy:1,shred:1,malware:0,cli:1,
+   notes:"CleanerML custom rules, 65+ languages, wipes free space, vacuums Firefox. No GUI monitor."},
+  {name:"CCleaner",tagline:"Windows/Mac junk & registry",win:1,mac:1,linux:0,free:1,cross:0,
+   license:"Freemium",price:"Free / Pro $29.95/yr",
+   junk:1,dupes:1,viz:0,reg:1,start:1,uninst:1,privacy:1,shred:1,malware:1,cli:0,
+   notes:"Industry standard for Windows. Driver Updater, Health Check in Pro. Controversial privacy history."},
+  {name:"Stacer",tagline:"Linux system optimizer & monitor",win:0,mac:0,linux:1,free:1,cross:0,
+   license:"Free / Open Source",price:"$0",
+   junk:1,dupes:0,viz:0,reg:0,start:1,uninst:1,privacy:0,shred:0,malware:0,cli:0,
+   notes:"Electron-based. Real-time CPU/RAM/Net monitor, service manager, repo manager. Ubuntu/Fedora."},
+  {name:"CleanMyMac",tagline:"All-in-one Mac optimizer",win:0,mac:1,linux:0,free:0,cross:0,
+   license:"Paid (sub or perpetual)",price:"$39.95/yr · $119.95 lifetime",
+   junk:1,dupes:1,viz:1,reg:0,start:1,uninst:1,privacy:1,shred:1,malware:1,cli:0,
+   notes:"Space Lens treemap, malware scanner, menu bar monitor, cloud storage cleanup. MacPaw."},
+  {name:"DaisyDisk",tagline:"Mac disk visualizer",win:0,mac:1,linux:0,free:0,cross:0,
+   license:"Paid",price:"$9.99 (one-time)",
+   junk:1,dupes:0,viz:1,reg:0,start:0,uninst:0,privacy:0,shred:0,malware:0,cli:0,
+   notes:"Sunburst map, scans cloud drives, purgeable space detection. Fastest scan on Apple Silicon."},
+  {name:"WinDirStat",tagline:"Windows disk usage treemap",win:1,mac:0,linux:0,free:1,cross:0,
+   license:"Free / Open Source",price:"$0",
+   junk:0,dupes:0,viz:1,reg:0,start:0,uninst:0,privacy:0,shred:0,malware:0,cli:0,
+   notes:"Classic treemap visualization. Windows-only. Lightweight. Color-coded file-type map."},
+  {name:"TreeSize Free / Pro",tagline:"Windows folder size analyzer",win:1,mac:1,linux:0,free:1,cross:0,
+   license:"Freemium",price:"Free / Pro €59.95 one-time",
+   junk:0,dupes:1,viz:1,reg:0,start:0,uninst:0,privacy:0,shred:0,malware:0,cli:1,
+   notes:"TreeMap + bar chart. CLI mode, scheduled scans, NTFS hardlinks. Pro adds duplicate finder, reports."},
+  {name:"SpaceSniffer",tagline:"Windows treemap space finder",win:1,mac:0,linux:0,free:1,cross:0,
+   license:"Free (donationware)",price:"$0",
+   junk:0,dupes:0,viz:1,reg:0,start:0,uninst:0,privacy:0,shred:0,malware:0,cli:0,
+   notes:"Live scanning treemap. Portable exe, no install. Tag-based color filtering. Windows only."},
+  {name:"WizTree",tagline:"Fastest Windows disk analyzer",win:1,mac:0,linux:0,free:1,cross:0,
+   license:"Free / Paid",price:"Free / $25 personal",
+   junk:0,dupes:0,viz:1,reg:0,start:0,uninst:0,privacy:0,shred:0,malware:0,cli:1,
+   notes:"Reads MFT directly — scans 1TB in ~3s. CSV export, CLI, duplicate detection in paid."},
+  {name:"Glary Utilities",tagline:"Windows system suite",win:1,mac:0,linux:0,free:1,cross:0,
+   license:"Freemium",price:"Free / Pro $39.95/yr",
+   junk:1,dupes:1,viz:1,reg:1,start:1,uninst:1,privacy:1,shred:1,malware:0,cli:0,
+   notes:"20+ tools: registry repair, memory optimizer, disk repair, context menu manager. Windows-only."},
+  {name:"Wise Disk Cleaner",tagline:"Lightweight Windows cleaner",win:1,mac:0,linux:0,free:1,cross:0,
+   license:"Free",price:"$0",
+   junk:1,dupes:0,viz:0,reg:0,start:0,uninst:0,privacy:1,shred:0,malware:0,cli:0,
+   notes:"4MB install. Slimline interface, slim system footprint. Metro cache + WinSxS cleanup."},
+  {name:"Wise Care 365",tagline:"Windows all-in-one tuner",win:1,mac:0,linux:0,free:1,cross:0,
+   license:"Freemium",price:"Free / Pro $39.95/yr",
+   junk:1,dupes:0,viz:0,reg:1,start:1,uninst:1,privacy:1,shred:1,malware:0,cli:0,
+   notes:"Combines Wise Disk + Registry Cleaners. One-click optimization. File recovery & hider included."},
+  {name:"Advanced SystemCare",tagline:"Deep Windows optimizer",win:1,mac:0,linux:0,free:1,cross:0,
+   license:"Freemium",price:"Free / Pro $19.99/yr",
+   junk:1,dupes:0,viz:0,reg:1,start:1,uninst:1,privacy:1,shred:0,malware:1,cli:0,
+   notes:"IObit product. Internet booster, real-time optimization, malware removal module. Very aggressive upsell."},
+  {name:"MacKeeper",tagline:"Mac cleaner + security",win:0,mac:1,linux:0,free:0,cross:0,
+   license:"Subscription",price:"$10.95/mo · $95.40/yr",
+   junk:1,dupes:1,viz:1,reg:0,start:1,uninst:1,privacy:1,shred:0,malware:1,cli:0,
+   notes:"Safe Cleanup, real-time protection, VPN, ID theft guard. Avg 7.5GB freed first scan."},
+  {name:"OnyX",tagline:"Free macOS maintenance tool",win:0,mac:1,linux:0,free:1,cross:0,
+   license:"Free",price:"$0",
+   junk:1,dupes:0,viz:0,reg:0,start:1,uninst:0,privacy:1,shred:0,malware:0,cli:0,
+   notes:"Titanium Software. Deep system scripts, font cache, DNS cache, UNIX permissions repair."},
+  {name:"App Cleaner & Uninstaller",tagline:"Mac app removal",win:0,mac:1,linux:0,free:1,cross:0,
+   license:"Freemium",price:"Free / Pro $14.99",
+   junk:1,dupes:0,viz:0,reg:0,start:1,uninst:1,privacy:0,shred:0,malware:0,cli:0,
+   notes:"Nektony. Finds all leftover files for any app. Extension manager, login items manager."},
+  {name:"Cleaner One Pro",tagline:"Mac/Win disk cleaner",win:1,mac:1,linux:0,free:0,cross:1,
+   license:"Paid",price:"$19.99/yr (1 device)",
+   junk:1,dupes:1,viz:1,reg:0,start:1,uninst:1,privacy:1,shred:0,malware:0,cli:0,
+   notes:"TrendMicro. Smart Scan, app manager, disk map. Clean minimalist UI. No malware module."},
+  {name:"GrandPerspective",tagline:"macOS treemap viewer",win:0,mac:1,linux:0,free:1,cross:0,
+   license:"Free / $2.99 App Store",price:"$0 (SourceForge) / $2.99",
+   junk:0,dupes:0,viz:1,reg:0,start:0,uninst:0,privacy:0,shred:0,malware:0,cli:0,
+   notes:"Open source. Treemap + Quick Look preview, color schemes, scan export. macOS 10.14+."},
+  {name:"Disk Inventory X",tagline:"macOS WinDirStat clone",win:0,mac:1,linux:0,free:1,cross:0,
+   license:"Free / Open Source",price:"$0",
+   junk:0,dupes:0,viz:1,reg:0,start:0,uninst:0,privacy:0,shred:0,malware:0,cli:0,
+   notes:"Inspired by WinDirStat. Treemap layout optimized for macOS. Older project, still functional."},
+  {name:"dupeGuru",tagline:"Cross-platform duplicate finder",win:1,mac:1,linux:1,free:1,cross:1,
+   license:"Free / Open Source",price:"$0",
+   junk:0,dupes:1,viz:0,reg:0,start:0,uninst:0,privacy:0,shred:0,malware:0,cli:0,
+   notes:"Finds duplicate files AND music (audio comparison). Fuzzy matching. Python/Qt. All 3 platforms."},
+  {name:"FSlint",tagline:"Linux filesystem lint cleaner",win:0,mac:0,linux:1,free:1,cross:0,
+   license:"Free / Open Source",price:"$0",
+   junk:1,dupes:1,viz:0,reg:0,start:0,uninst:0,privacy:0,shred:0,malware:0,cli:1,
+   notes:"GTK+ GUI + CLI. Finds duplicates, empty dirs, bad symlinks, temp files. Scriptable."},
+  {name:"ncdu",tagline:"CLI disk usage analyzer",win:0,mac:1,linux:1,free:1,cross:1,
+   license:"Free / Open Source",price:"$0",
+   junk:0,dupes:0,viz:1,reg:0,start:0,uninst:0,privacy:0,shred:0,malware:0,cli:1,
+   notes:"ncurses TUI. Fast recursive du. Delete files in-terminal. SSH-friendly. Ships in most distros."},
+  {name:"Disk Drill",tagline:"Mac/Win disk analyzer + recovery",win:1,mac:1,linux:0,free:1,cross:1,
+   license:"Freemium",price:"Free / Pro $89 lifetime",
+   junk:0,dupes:1,viz:1,reg:0,start:0,uninst:0,privacy:0,shred:1,malware:0,cli:0,
+   notes:"Primary use: data recovery. Disk map, duplicate finder, free space eraser included."},
+  {name:"Sensei",tagline:"Mac performance monitor + cleaner",win:0,mac:1,linux:0,free:0,cross:0,
+   license:"Subscription",price:"$29/yr",
+   junk:1,dupes:0,viz:1,reg:0,start:1,uninst:1,privacy:0,shred:0,malware:0,cli:0,
+   notes:"Detailed real-time CPU/GPU/SSD stats. Thermal throttle detection. Cooling profiles. Disk cleaner."},
+  {name:"JDiskReport",tagline:"Java cross-platform disk reporter",win:1,mac:1,linux:1,free:1,cross:1,
+   license:"Free",price:"$0",
+   junk:0,dupes:0,viz:1,reg:0,start:0,uninst:0,privacy:0,shred:0,malware:0,cli:1,
+   notes:"Requires Java. Pie/bar charts, file-type breakdown, cron-runnable (v2). Ad-free, never expires."},
+  {name:"Bleeping Kudu Cleaner",tagline:"OSS multi-OS maintenance suite",win:1,mac:1,linux:1,free:1,cross:1,
+   license:"Free / Open Source",price:"$0",
+   junk:1,dupes:0,viz:0,reg:1,start:1,uninst:1,privacy:1,shred:0,malware:0,cli:0,
+   notes:"15+ tools, no ads, no bloatware. Targets Win/Mac/Linux. Community-driven OSS project."},
+  {name:"BuhoCleaner",tagline:"Affordable Mac cleaner",win:0,mac:1,linux:0,free:0,cross:0,
+   license:"Paid",price:"$19.99/yr · $29.99 lifetime",
+   junk:1,dupes:1,viz:1,reg:0,start:1,uninst:1,privacy:0,shred:0,malware:0,cli:0,
+   notes:"One-click clean, memory flush, large/old file finder, similar photo removal. 10+ languages."},
+  {name:"System Ninja",tagline:"Windows system cleaner",win:1,mac:0,linux:0,free:1,cross:0,
+   license:"Free / Pro $14.99",price:"Free / $14.99 one-time",
+   junk:1,dupes:0,viz:0,reg:0,start:1,uninst:1,privacy:1,shred:0,malware:0,cli:0,
+   notes:"Process manager, startup manager, system info panel. Multi-browser junk clean."},
+  {name:"Ubuntu Cleaner",tagline:"Ubuntu-specific apt & cache cleaner",win:0,mac:0,linux:1,free:1,cross:0,
+   license:"Free / Open Source",price:"$0",
+   junk:1,dupes:0,viz:0,reg:0,start:0,uninst:1,privacy:1,shred:0,malware:0,cli:0,
+   notes:"Removes apt cache, old kernels, browser caches, thumbnail cache. Ubuntu/Debian focused."},
+  {name:"KDE Sweeper",tagline:"KDE desktop cleaner",win:0,mac:0,linux:1,free:1,cross:0,
+   license:"Free / Open Source",price:"$0",
+   junk:1,dupes:0,viz:0,reg:0,start:0,uninst:0,privacy:1,shred:0,malware:0,cli:0,
+   notes:"Removes KDE/Plasma activity traces, temp files, browser data. Lightweight Qt app."},
+];
+
+const cols=["name","platforms","license","junk","dupes","viz","reg","start","uninst","privacy","shred","malware","cli","notes"];
+let filterMode="all", sortCol=-1, sortDir=1;
+
+function setFilter(f,el){
+  filterMode=f;
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function sortBy(i){
+  if(sortCol===i) sortDir*=-1; else {sortCol=i;sortDir=1;}
+  document.querySelectorAll('[id^=sa]').forEach(s=>s.textContent='');
+  document.getElementById('sa'+i).textContent=sortDir===1?'▲':'▼';
+  render();
+}
+
+function platHtml(a){
+  let p=[];
+  if(a.linux) p.push('<span class="plat">Linux</span>');
+  if(a.win) p.push('<span class="plat">Win</span>');
+  if(a.mac) p.push('<span class="plat">Mac</span>');
+  return p.join(' ');
+}
+
+function priceHtml(a){
+  let badge='';
+  if(a.free && a.license.includes('Freemium')) badge='<span class="badge b-fp">Freemium</span>';
+  else if(a.free) badge='<span class="badge b-free">Free</span>';
+  else if(a.license.includes('Subscription')) badge='<span class="badge b-sub">Subscription</span>';
+  else badge='<span class="badge b-paid">Paid</span>';
+  return badge+'<br><span class="price">'+a.price+'</span>';
+}
+
+function render(){
+  const q=(document.getElementById('search').value||'').toLowerCase();
+  let data=apps.filter(a=>{
+    const fm=filterMode;
+    if(fm==='linux' && !a.linux) return false;
+    if(fm==='win' && !a.win) return false;
+    if(fm==='mac' && !a.mac) return false;
+    if(fm==='free' && !a.free) return false;
+    if(fm==='cross' && !a.cross) return false;
+    if(q){
+      const hay=(a.name+' '+a.tagline+' '+a.notes+' '+a.license+' '+a.price).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if(sortCol>=0){
+    data=[...data].sort((a,b)=>{
+      let va,vb;
+      if(sortCol===0){va=a.name;vb=b.name;}
+      else if(sortCol===1){va=a.linux*4+a.win*2+a.mac;vb=b.linux*4+b.win*2+b.mac;}
+      else if(sortCol===2){va=a.price;vb=b.price;}
+      else {
+        const fmap=[null,null,null,'junk','dupes','viz','reg','start','uninst','privacy','shred','malware','cli'];
+        const k=fmap[sortCol];
+        va=k?a[k]:0;vb=k?b[k]:0;
+      }
+      if(typeof va==='string') return sortDir*va.localeCompare(vb);
+      return sortDir*(va-vb);
+    });
+  }
+
+  document.getElementById('count').textContent='Showing '+data.length+' of 30 apps';
+  const tb=document.getElementById('tbody');
+  tb.innerHTML=data.map(a=>`<tr>
+    <td><div class="name">${a.name}</div><div class="tagline">${a.tagline}</div></td>
+    <td>${platHtml(a)}</td>
+    <td>${priceHtml(a)}</td>
+    <td>${a.junk?T:F}</td>
+    <td>${a.dupes?T:F}</td>
+    <td>${a.viz?T:F}</td>
+    <td>${a.reg?T:F}</td>
+    <td>${a.start?T:F}</td>
+    <td>${a.uninst?T:F}</td>
+    <td>${a.privacy?T:F}</td>
+    <td>${a.shred?T:F}</td>
+    <td>${a.malware?T:F}</td>
+    <td>${a.cli?T:F}</td>
+    <td><span style="font-size:11px;color:var(--color-text-secondary)">${a.notes}</span></td>
+  </tr>`).join('');
+}
+render();
+</script>

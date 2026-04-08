@@ -1,9 +1,18 @@
-use std::path::PathBuf;
-use super::models::CacheLocation;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use regex::Regex;
+
+use super::models::{CacheLocation, LeftoverItem};
+use super::scanner::{get_directory_size, human_readable_size};
+
+pub fn get_home() -> PathBuf {
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"))
+}
 
 pub fn get_cache_locations() -> Vec<CacheLocation> {
     let os = std::env::consts::OS;
-    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
+    let home = get_home();
     let mut locations = Vec::new();
 
     if os == "macos" {
@@ -84,4 +93,461 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
     }
 
     locations
+}
+
+pub fn parse_plist_bundle_id(plist_path: &Path) -> Option<String> {
+    Command::new("defaults")
+        .args(&["read", plist_path.to_str()?, "CFBundleIdentifier"])
+        .output()
+        .ok()
+        .and_then(|output| {
+            if output.status.success() {
+                String::from_utf8(output.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        })
+}
+
+pub fn infer_app_name(bundle_id: &str) -> String {
+    if bundle_id.is_empty() {
+        return "Unknown App".to_string();
+    }
+
+    let parts: Vec<&str> = bundle_id.split('.').collect();
+    if let Some(last_part) = parts.last() {
+        let mut name = last_part.to_string();
+        // Convert camelCase to spaces
+        let re = Regex::new(r"([a-z])([A-Z])").unwrap();
+        name = re.replace_all(&name, "$1 $2").to_string();
+        // Convert dashes/underscores to spaces
+        name = name.replace('-', " ").replace('_', " ");
+        // Capitalize words
+        name.split_whitespace()
+            .map(|word| {
+                let mut chars = word.chars();
+                match chars.next() {
+                    None => String::new(),
+                    Some(first) => first.to_uppercase().chain(chars).collect(),
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    } else {
+        bundle_id.to_string()
+    }
+}
+
+pub fn get_installed_bundle_ids() -> HashSet<String> {
+    let mut bundle_ids = HashSet::new();
+
+    // Method 1: Use mdfind
+    if let Ok(output) = Command::new("mdfind")
+        .arg(r#"kMDItemContentType == "com.apple.application-bundle""#)
+        .output()
+    {
+        if output.status.success() {
+            if let Ok(output_str) = String::from_utf8(output.stdout) {
+                for app_path in output_str.lines() {
+                    let app_path = PathBuf::from(app_path);
+                    let plist_path = app_path.join("Contents").join("Info.plist");
+                    if let Some(bundle_id) = parse_plist_bundle_id(&plist_path) {
+                        bundle_ids.insert(bundle_id.to_lowercase());
+                    }
+                }
+            }
+        }
+    }
+
+    // Method 2: Scan /Applications
+    let apps_dirs = vec![
+        PathBuf::from("/Applications"),
+        get_home().join("Applications"),
+    ];
+
+    for apps_dir in apps_dirs {
+        if let Ok(entries) = std::fs::read_dir(&apps_dir) {
+            for entry in entries.flatten() {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name.ends_with(".app") {
+                        let plist_path = entry.path().join("Contents").join("Info.plist");
+                        if let Some(bundle_id) = parse_plist_bundle_id(&plist_path) {
+                            bundle_ids.insert(bundle_id.to_lowercase());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    bundle_ids
+}
+
+pub fn detect_container_orphans(installed_ids: &HashSet<String>) -> Vec<LeftoverItem> {
+    let mut orphans = Vec::new();
+    let containers_path = get_home().join("Library").join("Containers");
+
+    if let Ok(entries) = std::fs::read_dir(&containers_path) {
+        for entry in entries.flatten() {
+            if let Ok(metadata) = entry.metadata() {
+                if metadata.is_dir() {
+                    let container_name = entry.file_name().to_string_lossy().to_string();
+                    let container_id = container_name.to_lowercase();
+
+                    if !installed_ids.contains(&container_id) {
+                        let size = get_directory_size(&entry.path());
+                        if size > 0 {
+                            orphans.push(LeftoverItem {
+                                id: format!("container_{}", container_name),
+                                path: entry.path().to_string_lossy().to_string(),
+                                name: infer_app_name(&container_name),
+                                bundle_id: container_name.clone(),
+                                detection_source: "container_scan".to_string(),
+                                category: "Containers".to_string(),
+                                confidence: "high".to_string(),
+                                hint: format!("Sandboxed data container for '{}'. This app appears to be uninstalled.", infer_app_name(&container_name)),
+                                size,
+                                size_human: human_readable_size(size),
+                                selected: true,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    orphans
+}
+
+pub fn detect_group_container_orphans(installed_ids: &HashSet<String>) -> Vec<LeftoverItem> {
+    let mut orphans = Vec::new();
+    let group_containers_path = get_home().join("Library").join("Group Containers");
+
+    if let Ok(entries) = std::fs::read_dir(&group_containers_path) {
+        for entry in entries.flatten() {
+            if let Ok(metadata) = entry.metadata() {
+                if metadata.is_dir() {
+                    let container_name = entry.file_name().to_string_lossy().to_string();
+                    let container_id = container_name.to_lowercase();
+
+                    let parts: Vec<&str> = container_name.splitn(2, '.').collect();
+                    let bundle_portion = if parts.len() > 1 {
+                        parts[1].to_lowercase()
+                    } else {
+                        container_id.clone()
+                    };
+
+                    let is_orphan = !installed_ids.iter().any(|id| {
+                        id.contains(&container_id)
+                            || container_id.contains(id)
+                            || id.contains(&bundle_portion)
+                            || bundle_portion.contains(id)
+                    });
+
+                    if is_orphan {
+                        let size = get_directory_size(&entry.path());
+                        if size > 0 {
+                            orphans.push(LeftoverItem {
+                                id: format!("group_container_{}", container_name),
+                                path: entry.path().to_string_lossy().to_string(),
+                                name: infer_app_name(&container_name),
+                                bundle_id: container_name.clone(),
+                                detection_source: "group_container_scan".to_string(),
+                                category: "Group Containers".to_string(),
+                                confidence: "high".to_string(),
+                                hint: format!(
+                                    "Shared data container for '{}'. No matching app found.",
+                                    infer_app_name(&container_name)
+                                ),
+                                size,
+                                size_human: human_readable_size(size),
+                                selected: true,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    orphans
+}
+
+pub fn detect_preference_orphans(
+    installed_ids: &HashSet<String>,
+    user_skip_prefixes: Option<&Vec<String>>,
+) -> Vec<LeftoverItem> {
+    let mut orphans = Vec::new();
+    let prefs_path = get_home().join("Library").join("Preferences");
+    let mut skip_prefixes = vec![
+        "com.apple.".to_string(),
+        "org.python.".to_string(),
+        "com.github.".to_string(),
+        "loginwindow".to_string(),
+        "pbs".to_string(),
+        "systemsoundserverd".to_string(),
+        "ContextStoreAgent".to_string(),
+        "NSGlobalDomain".to_string(),
+    ];
+
+    if let Some(user_skips) = user_skip_prefixes {
+        skip_prefixes.extend(user_skips.iter().cloned());
+    }
+
+    if let Ok(entries) = std::fs::read_dir(&prefs_path) {
+        for entry in entries.flatten() {
+            if let Some(name) = entry.file_name().to_str() {
+                if name.ends_with(".plist") {
+                    let pref_name = name.trim_end_matches(".plist").to_lowercase();
+
+                    if skip_prefixes
+                        .iter()
+                        .any(|prefix| pref_name.starts_with(&prefix.to_lowercase()))
+                    {
+                        continue;
+                    }
+
+                    let is_orphan = !installed_ids.iter().any(|id| {
+                        pref_name == *id
+                            || pref_name.starts_with(id)
+                            || pref_name.contains(id)
+                            || id.contains(&pref_name)
+                    });
+
+                    if is_orphan {
+                        if let Ok(metadata) = entry.metadata() {
+                            let size = metadata.len();
+                            if size > 0 {
+                                orphans.push(LeftoverItem {
+                                    id: format!("pref_{}", pref_name),
+                                    path: entry.path().to_string_lossy().to_string(),
+                                    name: infer_app_name(&pref_name),
+                                    bundle_id: pref_name.clone(),
+                                    detection_source: "preferences_scan".to_string(),
+                                    category: "Preferences".to_string(),
+                                    confidence: "medium".to_string(),
+                                    hint: format!(
+                                        "Preference file for '{}'. No matching app installed.",
+                                        infer_app_name(&pref_name)
+                                    ),
+                                    size,
+                                    size_human: human_readable_size(size),
+                                    selected: true,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    orphans
+}
+
+pub fn detect_app_support_orphans(
+    installed_ids: &HashSet<String>,
+    user_skip_folders: Option<&Vec<String>>,
+) -> Vec<LeftoverItem> {
+    let mut orphans = Vec::new();
+    let app_support_path = get_home().join("Library").join("Application Support");
+    let mut skip_folders = vec![
+        "AddressBook".to_string(),
+        "AppStore".to_string(),
+        "CallHistoryDB".to_string(),
+        "CloudDocs".to_string(),
+        "CrashReporter".to_string(),
+        "Dock".to_string(),
+        "FileProvider".to_string(),
+        "iCloud".to_string(),
+        "icdd".to_string(),
+        "Knowledge".to_string(),
+        "MobileSync".to_string(),
+        "NotificationCenter".to_string(),
+        "Quick Look".to_string(),
+        "Spotlight".to_string(),
+        "com.apple.".to_string(),
+        "Apple".to_string(),
+        "SyncServices".to_string(),
+        "CoreData".to_string(),
+    ];
+
+    if let Some(user_skips) = user_skip_folders {
+        skip_folders.extend(user_skips.iter().cloned());
+    }
+
+    if let Ok(entries) = std::fs::read_dir(&app_support_path) {
+        for entry in entries.flatten() {
+            if let Ok(metadata) = entry.metadata() {
+                if metadata.is_dir() {
+                    let folder_name = entry.file_name().to_string_lossy().to_string();
+                    let lower_name = folder_name.to_lowercase();
+
+                    if skip_folders.iter().any(|s| {
+                        lower_name.starts_with(&s.to_lowercase()) || lower_name == s.to_lowercase()
+                    }) {
+                        continue;
+                    }
+
+                    let is_orphan = !installed_ids.iter().any(|id| {
+                        lower_name.contains(id) || id.contains(&lower_name) || {
+                            let parts: Vec<&str> = id.split('.').collect();
+                            parts.iter().any(|p| p.to_lowercase() == lower_name)
+                        }
+                    });
+
+                    if is_orphan {
+                        let size = get_directory_size(&entry.path());
+                        if size > 1024 {
+                            // > 1KB
+                            orphans.push(LeftoverItem {
+                                id: format!("appsupport_{}", folder_name),
+                                path: entry.path().to_string_lossy().to_string(),
+                                name: folder_name.clone(),
+                                bundle_id: format!("*.{}", folder_name),
+                                detection_source: "app_support_scan".to_string(),
+                                category: "Application Support".to_string(),
+                                confidence: "medium".to_string(),
+                                hint: format!("Application Support folder for '{}'. No matching app installed.", folder_name),
+                                size,
+                                size_human: human_readable_size(size),
+                                selected: true,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    orphans
+}
+
+pub fn detect_launch_agent_orphans(
+    installed_ids: &HashSet<String>,
+    user_skip_prefixes: Option<&Vec<String>>,
+) -> Vec<LeftoverItem> {
+    let mut orphans = Vec::new();
+    let launch_paths = vec![
+        get_home().join("Library").join("LaunchAgents"),
+        PathBuf::from("/Library/LaunchAgents"),
+    ];
+    let mut skip_prefixes = vec![
+        "com.apple.".to_string(),
+        "com.openssh".to_string(),
+        "bootcamp".to_string(),
+        "org.gpgtools".to_string(),
+    ];
+
+    if let Some(user_skips) = user_skip_prefixes {
+        skip_prefixes.extend(user_skips.iter().cloned());
+    }
+
+    for path in launch_paths {
+        if let Ok(entries) = std::fs::read_dir(&path) {
+            for entry in entries.flatten() {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name.ends_with(".plist") {
+                        let plist_name = name.trim_end_matches(".plist").to_lowercase();
+
+                        if skip_prefixes
+                            .iter()
+                            .any(|prefix| plist_name.starts_with(&prefix.to_lowercase()))
+                        {
+                            continue;
+                        }
+
+                        let is_orphan = !installed_ids.iter().any(|id| {
+                            plist_name == *id || id.contains(&plist_name) || plist_name.contains(id)
+                        });
+
+                        if is_orphan {
+                            if let Ok(metadata) = entry.metadata() {
+                                orphans.push(LeftoverItem {
+                                    id: format!("launchagent_{}", plist_name),
+                                    path: entry.path().to_string_lossy().to_string(),
+                                    name: infer_app_name(&plist_name),
+                                    bundle_id: plist_name.clone(),
+                                    detection_source: "launch_agent_scan".to_string(),
+                                    category: "Launch Agents".to_string(),
+                                    confidence: "high".to_string(),
+                                    hint: format!("Background agent for '{}'. Associated app is missing.", infer_app_name(&plist_name)),
+                                    size: metadata.len(),
+                                    size_human: human_readable_size(metadata.len()),
+                                    selected: true,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    orphans
+}
+
+pub fn detect_cache_orphans(
+    installed_ids: &HashSet<String>,
+    user_skip_prefixes: Option<&Vec<String>>,
+) -> Vec<LeftoverItem> {
+    let mut orphans = Vec::new();
+    let caches_path = get_home().join("Library").join("Caches");
+    let mut skip_prefixes = vec![
+        "com.apple.".to_string(),
+        "CloudKit".to_string(),
+        "GeoServices".to_string(),
+        "PassKit".to_string(),
+        "com.crashlytics".to_string(),
+        "google".to_string(),
+        "org.swift".to_string(),
+    ];
+
+    if let Some(user_skips) = user_skip_prefixes {
+        skip_prefixes.extend(user_skips.iter().cloned());
+    }
+
+    if let Ok(entries) = std::fs::read_dir(&caches_path) {
+        for entry in entries.flatten() {
+            if let Ok(metadata) = entry.metadata() {
+                if metadata.is_dir() {
+                    let folder_name = entry.file_name().to_string_lossy().to_string();
+                    let lower_name = folder_name.to_lowercase();
+
+                    if skip_prefixes
+                        .iter()
+                        .any(|p| lower_name.starts_with(&p.to_lowercase()))
+                    {
+                        continue;
+                    }
+
+                    let is_orphan = !installed_ids.iter().any(|id| {
+                        lower_name == *id || id.contains(&lower_name) || lower_name.contains(id)
+                    });
+
+                    if is_orphan {
+                        let size = get_directory_size(&entry.path());
+                        if size > 10240 {
+                            // > 10KB
+                            orphans.push(LeftoverItem {
+                                id: format!("cache_{}", folder_name),
+                                path: entry.path().to_string_lossy().to_string(),
+                                name: infer_app_name(&folder_name),
+                                bundle_id: folder_name.clone(),
+                                detection_source: "cache_scan".to_string(),
+                                category: "Caches".to_string(),
+                                confidence: "medium".to_string(),
+                                hint: format!(
+                                    "Cache folder for '{}'. No matching app installed.",
+                                    infer_app_name(&folder_name)
+                                ),
+                                size,
+                                size_human: human_readable_size(size),
+                                selected: true,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    orphans
 }

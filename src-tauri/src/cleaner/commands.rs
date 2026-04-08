@@ -7,7 +7,11 @@ use tokio_util::sync::CancellationToken;
 use super::error::CleanerError;
 use super::models::{CacheLocation, CleanerState, ScanProgress, SystemStats, MemoryStats, DiskStats, SYSTEM, DISKS};
 use super::scanner::{get_directory_size, human_readable_size};
-use super::detectors::get_cache_locations;
+use super::detectors::{
+    get_cache_locations, get_installed_bundle_ids, detect_container_orphans, 
+    detect_group_container_orphans, detect_preference_orphans, 
+    detect_app_support_orphans, detect_launch_agent_orphans, detect_cache_orphans
+};
 
 #[tauri::command]
 pub async fn cancel_scan(state: State<'_, CleanerState>) -> Result<(), CleanerError> {
@@ -224,4 +228,127 @@ pub fn get_system_stats() -> SystemStats {
             free_human: human_readable_size(disk_free),
         }
     }
+}
+
+// ----------------------------------------------------
+// LEFTOVER SCAN COMMANDS
+// ----------------------------------------------------
+
+#[tauri::command]
+pub async fn start_leftover_scan(app: AppHandle, state: State<'_, CleanerState>) -> Result<(), CleanerError> {
+    let mut in_progress = state.leftover_scan_in_progress.lock().await;
+    if *in_progress {
+        return Ok(());
+    }
+    *in_progress = true;
+    drop(in_progress);
+
+    let token = CancellationToken::new();
+    *state.cancel_token.lock().await = token.clone();
+    
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<ScanProgress>(64);
+    let app_clone = app.clone();
+    
+    tauri::async_runtime::spawn(async move {
+        let throttle_dur = tokio::time::Duration::from_millis(16);
+        let mut last_emit = tokio::time::Instant::now();
+        while let Some(progress) = rx.recv().await {
+            if progress.percent == 100 || last_emit.elapsed() >= throttle_dur {
+                let _ = app_clone.emit("leftover-scan-progress", &progress);
+                last_emit = tokio::time::Instant::now();
+            }
+        }
+    });
+
+    let app_worker = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut total_size = 0;
+        let mut found_count = 0;
+        let mut all_orphans = Vec::new();
+
+        let _ = tx.send(ScanProgress { current: 0, total: 6, percent: 5, current_location: "Getting installed apps...".into(), found_count, total_size }).await;
+        
+        let installed = get_installed_bundle_ids();
+
+        let _ = tx.send(ScanProgress { current: 1, total: 6, percent: 15, current_location: "Scanning containers...".into(), found_count, total_size }).await;
+        let mut containers = detect_container_orphans(&installed);
+        for c in &containers { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut containers);
+
+        let _ = tx.send(ScanProgress { current: 2, total: 6, percent: 30, current_location: "Scanning group containers...".into(), found_count, total_size }).await;
+        let mut group = detect_group_container_orphans(&installed);
+        for c in &group { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut group);
+
+        let _ = tx.send(ScanProgress { current: 3, total: 6, percent: 50, current_location: "Scanning preferences...".into(), found_count, total_size }).await;
+        let mut prefs = detect_preference_orphans(&installed, None);
+        for c in &prefs { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut prefs);
+
+        let _ = tx.send(ScanProgress { current: 4, total: 6, percent: 70, current_location: "Scanning App Support...".into(), found_count, total_size }).await;
+        let mut support = detect_app_support_orphans(&installed, None);
+        for c in &support { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut support);
+
+        let _ = tx.send(ScanProgress { current: 5, total: 6, percent: 85, current_location: "Scanning Launch Agents...".into(), found_count, total_size }).await;
+        let mut launch = detect_launch_agent_orphans(&installed, None);
+        for c in &launch { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut launch);
+
+        let _ = tx.send(ScanProgress { current: 6, total: 6, percent: 95, current_location: "Scanning generic caches...".into(), found_count, total_size }).await;
+        let mut caches = detect_cache_orphans(&installed, None);
+        for c in &caches { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut caches);
+
+        let state = app_worker.state::<CleanerState>();
+        let mut results = state.leftover_results.lock().await;
+        *results = all_orphans;
+
+        let mut in_progress = state.leftover_scan_in_progress.lock().await;
+        *in_progress = false;
+
+        let _ = tx.send(ScanProgress {
+            current: 6,
+            total: 6,
+            percent: 100,
+            current_location: "Scan complete".into(),
+            found_count,
+            total_size,
+        }).await;
+    });
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_leftover_results(state: State<'_, CleanerState>) -> Result<Vec<super::models::LeftoverItem>, CleanerError> {
+    Ok(state.leftover_results.lock().await.clone())
+}
+
+#[tauri::command]
+pub async fn clean_leftovers(items: Vec<String>, state: State<'_, CleanerState>) -> Result<u64, CleanerError> {
+    let results = state.leftover_results.lock().await.clone();
+    let mut freed_space = 0;
+
+    for id in items {
+        if let Some(loc) = results.iter().find(|l| l.id == id) {
+            let path = PathBuf::from(&loc.path);
+            let exists = fs::try_exists(&path).await.unwrap_or(false);
+            if exists {
+                if let Ok(metadata) = fs::symlink_metadata(&path).await {
+                    let is_dir = metadata.is_dir();
+                    if trash::delete(&path).is_err() {
+                        if is_dir {
+                            let _ = fs::remove_dir_all(&path).await;
+                        } else {
+                            let _ = fs::remove_file(&path).await;
+                        }
+                    }
+                    freed_space += loc.size;
+                }
+            }
+        }
+    }
+
+    Ok(freed_space)
 }
