@@ -70,8 +70,23 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
                 total_size,
             }).await;
 
-            let path = PathBuf::from(&loc.path);
-            loc.exists = fs::try_exists(&path).await.unwrap_or(false);
+            let path_str = loc.path.clone();
+
+            if path_str.starts_with("docker://") {
+                if let Some(s) = fetch_docker_size(&path_str).await {
+                    loc.exists = true;
+                    loc.size = s;
+                    loc.size_human = human_readable_size(s);
+                    if s > 0 {
+                        found_count += 1;
+                        total_size += s;
+                    }
+                } else {
+                    loc.exists = false;
+                }
+            } else {
+                let path = PathBuf::from(&loc.path);
+                loc.exists = fs::try_exists(&path).await.unwrap_or(false);
             if loc.exists {
                 let size = if let Some(cached_size) = sizes_cache.get(&loc.path) {
                     *cached_size
@@ -92,7 +107,7 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
                     total_size += size;
                 }
             }
-            
+        }
             // Simulating artificial delay for cool scanning effect
             tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
         }
@@ -136,6 +151,13 @@ pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> 
 
     for id in items {
         if let Some(loc) = results.iter().find(|l| l.id == id) {
+            if loc.path.starts_with("docker://") {
+                perform_docker_clean(&loc.path).await;
+                freed_space += loc.size;
+                state.size_cache.lock().await.remove(&loc.path);
+                continue;
+            }
+
             let path = PathBuf::from(&loc.path);
             let exists = fs::try_exists(&path).await.unwrap_or(false);
             if exists {
@@ -351,4 +373,48 @@ pub async fn clean_leftovers(items: Vec<String>, state: State<'_, CleanerState>)
     }
 
     Ok(freed_space)
+}
+
+async fn fetch_docker_size(uri: &str) -> Option<u64> {
+    if let Ok(output) = tokio::process::Command::new("docker").args(&["system", "df", "--format", "{{json .}}"]).output().await {
+        if let Ok(stdout) = String::from_utf8(output.stdout) {
+            let target_type = match uri {
+                "docker://build_cache" => "Build Cache",
+                "docker://dangling_images" => "Images",
+                "docker://stopped_containers" => "Containers",
+                "docker://volumes" => "Local Volumes",
+                _ => return None,
+            };
+            
+            for line in stdout.lines() {
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+                    if let Some(t) = json.get("Type").and_then(|v| v.as_str()) {
+                        if t == target_type {
+                            let reclaimable = json.get("ReclaimableSize").and_then(|v| v.as_u64()).unwrap_or(0);
+                            return Some(reclaimable);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+async fn perform_docker_clean(uri: &str) {
+    match uri {
+        "docker://build_cache" => {
+            let _ = tokio::process::Command::new("docker").args(&["builder", "prune", "-a", "-f"]).output().await;
+        }
+        "docker://dangling_images" => {
+            let _ = tokio::process::Command::new("docker").args(&["image", "prune", "-f"]).output().await;
+        }
+        "docker://stopped_containers" => {
+            let _ = tokio::process::Command::new("docker").args(&["container", "prune", "-f"]).output().await;
+        }
+        "docker://volumes" => {
+            let _ = tokio::process::Command::new("docker").args(&["volume", "prune", "-f"]).output().await;
+        }
+        _ => {}
+    }
 }

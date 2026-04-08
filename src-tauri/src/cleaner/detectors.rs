@@ -92,6 +92,65 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
         });
     }
 
+    if Command::new("docker").arg("info").output().is_ok() {
+        locations.push(CacheLocation {
+            id: "docker_build_cache".into(),
+            path: "docker://build_cache".into(),
+            name: "Docker Build Cache".into(),
+            description: "Dangling build cache from docker builds".into(),
+            category: "Containers".into(),
+            hint: "Safe to clean unless you need them for instant cache hits.".into(),
+            impact: "Subsequent image builds might be slower.".into(),
+            risk: "low".into(),
+            size: 0,
+            size_human: "0B".into(),
+            selected: false,
+            exists: true,
+        });
+        locations.push(CacheLocation {
+            id: "docker_dangling_images".into(),
+            path: "docker://dangling_images".into(),
+            name: "Docker Dangling Images".into(),
+            description: "Unused and dangling docker container images".into(),
+            category: "Containers".into(),
+            hint: "Removes images without tags that aren't referenced.".into(),
+            impact: "Safe to delete. Frees significant disk space.".into(),
+            risk: "low".into(),
+            size: 0,
+            size_human: "0B".into(),
+            selected: false,
+            exists: true,
+        });
+        locations.push(CacheLocation {
+            id: "docker_stopped_containers".into(),
+            path: "docker://stopped_containers".into(),
+            name: "Docker Stopped Containers".into(),
+            description: "Containers that have exited".into(),
+            category: "Containers".into(),
+            hint: "Ensure you don't need any data inside them before removing!".into(),
+            impact: "Container state will be permanently lost.".into(),
+            risk: "medium".into(),
+            size: 0,
+            size_human: "0B".into(),
+            selected: false,
+            exists: true,
+        });
+        locations.push(CacheLocation {
+            id: "docker_dangling_volumes".into(),
+            path: "docker://volumes".into(),
+            name: "Docker Dangling Volumes".into(),
+            description: "Volumes not attached to any container".into(),
+            category: "Containers".into(),
+            hint: "Contains database and application persistence data!".into(),
+            impact: "Permanent data loss if the volume contains important info.".into(),
+            risk: "high".into(),
+            size: 0,
+            size_human: "0B".into(),
+            selected: false,
+            exists: true,
+        });
+    }
+
     locations
 }
 

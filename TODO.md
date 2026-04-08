@@ -6,7 +6,6 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 
 ## 🚨 Tier 1: High Priority (Architecture, Security, DevOps & CLI)
 *Critical infrastructure, permissions, testing, and distribution pipelines.*
-25. **Docker Builder Pruning:** Hook into the Docker CLI/socket to report and clean dangling images, volumes, and builder caches.
 28. **Windows Update Cache:** Add Windows `SoftwareDistribution/Download` cache cleaning (requires elevated privileges).
 37. **Dry-Run Architecture:** Implement true dry-run scanning in Rust. Currently, [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301) just executes. Provide a simulation API to guarantee file counts.
 53. **Hover Context Menus:** Use `bits-ui` Dropdown to add right-click options to rows: "Open Folder Location", "Add to Ignore List", "View Properties".
@@ -106,6 +105,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ---
 ## ✅ Completed Tasks (Archive)
 *Historical preservation of implemented milestones.*
+25. **Docker Builder Pruning:** Hook into the Docker CLI/socket to report and clean dangling images, volumes, and builder caches.
 15. **Cross-Platform Privilege Manager:** Use `sudo` crate or native auth APIs (e.g., macOS `Authorization Services`) to securely elevate privileges for system-level junk cleaning.
 1. ** [DONE] Remove Synchronous Blocking:** Replace `std::thread::sleep(150)` with `tokio::time::sleep` – the current implementation blocks the Tauri command pool. - *Replaced `std::thread::sleep` with `tokio::time::sleep` to unblock IPC thread.*
 2. ** [DONE] Asynchronous I/O:** Switch from standard `std::fs` to `tokio::fs` for non-blocking file deletion. - *Switched underlying functions to `tokio::fs` asynchronous operations.*
