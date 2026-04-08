@@ -36,6 +36,7 @@ export type CacheLocation = {
 export type SystemStats = {
   cpu_percent: number;
   cpu_count: number;
+  cpu_temp: number;
   memory: {
     total: number;
     used: number;

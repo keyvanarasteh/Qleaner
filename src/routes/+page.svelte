@@ -151,9 +151,16 @@
 		</div>
 
 		<div class="bg-card border border-border p-6 rounded-xl flex flex-col justify-between hover:border-primary/50 transition-colors shadow-sm">
-			<div class="flex items-center gap-3 mb-4">
-				<Cpu class="text-primary w-5 h-5" />
-				<p class="text-sm font-medium text-neutral-400">CPU Usage</p>
+			<div class="flex items-center justify-between mb-4">
+				<div class="flex items-center gap-3">
+					<Cpu class="text-primary w-5 h-5" />
+					<p class="text-sm font-medium text-neutral-400">CPU Status</p>
+				</div>
+				{#if cleanerStore.stats}
+					<span class="text-xs font-semibold bg-primary/20 text-primary px-2 py-1 rounded-md">
+						{cleanerStore.stats.cpu_temp}°C
+					</span>
+				{/if}
 			</div>
 			<div>
 				<h3 class="text-2xl font-bold tracking-tight flex items-baseline">
