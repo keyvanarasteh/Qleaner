@@ -1,0 +1,21 @@
+name: qleaner
+version: '1.0.0'
+summary: A high-performance, cross-platform system optimization tool.
+description: |
+  Qleaner is built with Rust, Tauri, and Svelte 5. It safely clears obsolete caches, leftover macOS containers, and system junk asynchronously without damaging vital system states.
+confinement: strict
+base: core22
+
+parts:
+  qleaner:
+    plugin: rust
+    source: .
+    build-packages:
+      - libwebkit2gtk-4.1-dev
+      - build-essential
+      - curl
+      - wget
+      - libssl-dev
+      - libgtk-3-dev
+      - libayatana-appindicator3-dev
+      - librsvg2-dev
