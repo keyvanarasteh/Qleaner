@@ -1,7 +1,11 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
+
+> **📈 Progress Statistics**
+> **Total Tasks:** 101 | **Done:** 27 | **Ongoing:** 1 | **Pending:** 73
+> *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
+
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
 Below are **100 required best implementations, fixes, and improvements** to transition Qleaner from a basic MVP into an enterprise-grade, high-performance system optimization tool.
-
 ---
 
 ## 🚨 Tier 1: High Priority (Architecture, Security, DevOps & CLI)

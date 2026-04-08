@@ -23,3 +23,21 @@ Qleaner projesi elit açık kaynak standartlarına (**Pro GitHub Config**) sahip
 
 ## 4. UI/UX "Qleaner" Estetiği
 Tasarımlar TailwindCSS v4 altyapısı ile beslenir. Standart renk temamız; neon data göstergelerini barındıran Obsidiyen (simsiyah) uzay / laboratuvar hissiyatlı profesyonel koyu teknoloji temalarıdır. Tıpkı kodlar gibi, UI hatları da jilet kadar keskin olmalıdır.
+## 5. DevOps, Progress Tracking & Telegram Reporting (MANDATORY)
+- **TODO.md Updates:** As you progress, `TODO.md` MUST be marked accordingly with details: `[x] done`, `[/] ongoing`, `[ ] implemented`, `[ ] incomplete-implemented`, or `[-] skipped` (including the exact reason, info, and details if skipped).
+  - YOU MUST update the `📈 Progress Statistics` header at the top of the file on every single state change.
+  - If a task is requested by the user or discovered globally that is missing, implicitly add it directly to `TODO.md`.
+- **Commits:** You must commit and push your code on every stable point.
+- **Telegram Reporting:** You MUST report each progress on commits via Telegram to the admin IDs utilizing the API token below:
+  - BOT_TOKEN: `8619989850:AAHO-tPqLa88lTLzz7SmhtyK8dwn5aTfZoY`
+  - DevOps Manager (keyvan arasteh): `1426904527`
+  - Developer (aziz efe cirak): `1905445451`
+
+## 6. Svelte & Tauri AI Integration Libraries (MANDATORY)
+You must utilize and strictly adhere to these external directories whenever you implement UI/Backend code:
+- **Svelte Rules:** `file:///home/drvoid/Qix/QDebugger/assets/agents/rules/svelte`
+- **Tauri Rules:** `file:///home/drvoid/Qix/QDebugger/assets/agents/rules/tauri`
+- **Svelte Skills:** `file:///home/drvoid/Qix/QDebugger/assets/agents/skills/svelte`
+- **Tauri Skills:** `file:///home/drvoid/Qix/QDebugger/assets/agents/skills/tauri`
+- **Svelte Workflows:** `file:///home/drvoid/Qix/QDebugger/assets/agents/workflows/svelte`
+- **Tauri Workflows:** `file:///home/drvoid/Qix/QDebugger/assets/agents/workflows/tauri`

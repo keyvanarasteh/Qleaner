@@ -33,4 +33,28 @@
     <rule id="FE-05" severity="required">Navigation: Strictly wrap internal path logic using SvelteKit's `$app/paths` `resolve()` when routing.</rule>
   </section>
 
+  <!-- ═══════════════════════════════════════════════════════════
+       DEVOPS, TRACKING & TELEGRAM REPORTING
+  ═══════════════════════════════════════════════════════════ -->
+  <section id="devops-reporting">
+    <rule id="DO-01" severity="required">As you progress, `TODO.md` MUST be marked with details: done, ongoing, implemented, incomplete-implemented, or skipped (with reason, info and details). YOU MUST update the `📈 Progress Statistics` header at the top of the file on every state change.</rule>
+    <rule id="DO-02" severity="required">Agent MUST commit and push code on every stable point.</rule>
+    <rule id="DO-03" severity="required">Report each progress on commits via Telegram. BOT_TOKEN: `8619989850:AAHO-tPqLa88lTLzz7SmhtyK8dwn5aTfZoY`. Admin IDs: `1426904527` (keyvan arasteh), `1905445451` (aziz efe cirak).</rule>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SVELTE & TAURI AI RESOURCES (QDEBUGGER)
+  ═══════════════════════════════════════════════════════════ -->
+  <section id="external-rules" source="qdebugger">
+    <rule id="EXT-01" severity="required">Utilize these external repositories/directories whenever building logic or designing patterns:
+    - Svelte Rules: `file:///home/drvoid/Qix/QDebugger/assets/agents/rules/svelte`
+    - Tauri Rules: `file:///home/drvoid/Qix/QDebugger/assets/agents/rules/tauri`
+    - Svelte Skills: `file:///home/drvoid/Qix/QDebugger/assets/agents/skills/svelte`
+    - Tauri Skills: `file:///home/drvoid/Qix/QDebugger/assets/agents/skills/tauri`
+    - Svelte Workflows: `file:///home/drvoid/Qix/QDebugger/assets/agents/workflows/svelte`
+    - Tauri Workflows: `file:///home/drvoid/Qix/QDebugger/assets/agents/workflows/tauri`
+    </rule>
+    <rule id="EXT-02" severity="required">If a task does not exist in `TODO.md` but is requested by the user or identified as crucial, add it directly to `TODO.md`.</rule>
+  </section>
+
 </rules>

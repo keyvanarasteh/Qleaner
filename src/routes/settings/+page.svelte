@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { Settings } from 'lucide-svelte';
+  import { Settings, CheckCircle2, Monitor, Languages, HandMetal, Moon, Sun, Lock } from 'lucide-svelte';
+  import { themeState } from '$lib/stores/theme.svelte';
+  import { cleanerStore } from '$lib/stores/cleaner.svelte';
 </script>
 
 <div class="flex-1 flex flex-col p-8 gap-8 overflow-y-auto w-full h-full">
@@ -13,11 +15,93 @@
     </div>
   </header>
 
-  <div class="bg-card border border-border p-12 rounded-xl flex flex-col items-center justify-center text-center flex-1 shadow-sm">
-    <Settings class="w-16 h-16 text-neutral-600 mb-6" />
-    <h3 class="text-2xl font-semibold mt-2 mb-2">Engine Configuration</h3>
-    <p class="text-neutral-400 max-w-md">
-      Telemetry, notification policies, language selection, and core backend behaviors are managed here.
-    </p>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
+    <!-- Theme & Language -->
+    <div class="flex flex-col gap-6">
+      <div class="bg-card border border-border p-6 rounded-xl shadow-sm hover:border-primary/50 transition-colors">
+        <div class="flex items-center gap-3 mb-6">
+          <Monitor class="text-primary w-6 h-6" />
+          <h3 class="text-xl font-semibold text-foreground">Appearance</h3>
+        </div>
+        <div class="flex items-center justify-between p-4 bg-neutral-900/50 rounded-lg">
+          <div>
+            <p class="font-medium">Theme Mode</p>
+            <p class="text-sm text-neutral-400">Toggle dark and light aesthetics</p>
+          </div>
+          <button 
+            onclick={() => themeState.toggle()}
+            class="p-3 bg-neutral-800 hover:bg-neutral-700 text-foreground rounded-lg transition-colors flex items-center gap-2"
+          >
+            {#if themeState.isDark}
+              <Sun size={18} /> Light
+            {:else}
+              <Moon size={18} /> Dark
+            {/if}
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-card border border-border p-6 rounded-xl shadow-sm hover:border-primary/50 transition-colors">
+        <div class="flex items-center gap-3 mb-6">
+          <Languages class="text-primary w-6 h-6" />
+          <h3 class="text-xl font-semibold text-foreground">Localization</h3>
+        </div>
+        <div class="flex items-center justify-between p-4 bg-neutral-900/50 rounded-lg">
+          <div>
+            <p class="font-medium">Language</p>
+            <p class="text-sm text-neutral-400">Select application interface language</p>
+          </div>
+          <select class="bg-neutral-800 border-none text-foreground py-2 px-4 rounded-lg focus:ring-1 focus:ring-primary outline-none">
+            <option value="en">English (US)</option>
+            <option value="tr">Türkçe</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security & System -->
+    <div class="flex flex-col gap-6">
+      <div class="bg-card border border-border p-6 rounded-xl shadow-sm hover:border-primary/50 transition-colors">
+        <div class="flex items-center gap-3 mb-6">
+          <Lock class="text-primary w-6 h-6" />
+          <h3 class="text-xl font-semibold text-foreground">Permissions</h3>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between p-4 bg-neutral-900/50 rounded-lg">
+            <span class="font-medium">File System Access</span>
+            <span class="px-3 py-1 bg-green-500/20 text-green-500 text-sm font-medium rounded-full flex items-center gap-1">
+              <CheckCircle2 size={14} /> Granted
+            </span>
+          </div>
+          <div class="flex items-center justify-between p-4 bg-neutral-900/50 rounded-lg">
+            <span class="font-medium">Network Access</span>
+            <span class="px-3 py-1 bg-red-500/20 text-red-500 text-sm font-medium rounded-full">
+              Restricted
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-card border border-border p-6 rounded-xl shadow-sm hover:border-primary/50 transition-colors">
+        <div class="flex items-center gap-3 mb-6">
+          <HandMetal class="text-primary w-6 h-6" />
+          <h3 class="text-xl font-semibold text-foreground">OS Environment</h3>
+        </div>
+        <div class="p-4 bg-neutral-900/50 rounded-lg flex flex-col gap-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-neutral-400">Architecture</span>
+            <span class="font-medium font-mono text-foreground">x86_64</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-neutral-400">CPU Thread Count</span>
+            <span class="font-medium font-mono text-foreground">{cleanerStore.stats?.cpu_count || '--'} Cores</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-neutral-400">Total System Memory</span>
+            <span class="font-medium font-mono text-foreground">{cleanerStore.stats?.memory.total_human || '--'}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
