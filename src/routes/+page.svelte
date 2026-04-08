@@ -11,7 +11,9 @@
 		CheckCircle2, 
 		Activity, 
 		ShieldCheck,
-		AlertTriangle
+		AlertTriangle,
+		ArrowDownWideNarrow,
+		ArrowUpNarrowWide
 	} from 'lucide-svelte';
 	
 	let totalSelectedSize = $derived(
@@ -21,6 +23,32 @@
 	);
 
 	let isConfirmModalOpen = $state(false);
+	
+	let sortKey = $state<'name' | 'category' | 'size'>('size');
+	let sortAsc = $state(false);
+
+	let sortedResults = $derived(
+		[...cleanerStore.results].sort((a, b) => {
+			const valA = a[sortKey];
+			const valB = b[sortKey];
+			if (typeof valA === 'string' && typeof valB === 'string') {
+				return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+			}
+			if (typeof valA === 'number' && typeof valB === 'number') {
+				return sortAsc ? valA - valB : valB - valA;
+			}
+			return 0;
+		})
+	);
+
+	function toggleSort(key: 'name' | 'category' | 'size') {
+		if (sortKey === key) {
+			sortAsc = !sortAsc;
+		} else {
+			sortKey = key;
+			sortAsc = key === 'size' ? false : true;
+		}
+	}
 
 	function formatBytes(bytes: number, decimals = 2) {
 		if (bytes === 0) return '0 B';
@@ -185,13 +213,19 @@
 										onchange={(e) => cleanerStore.toggleAll(e.currentTarget.checked)}
 									/>
 								</th>
-								<th class="px-6 py-4 font-medium text-neutral-400">Target</th>
-								<th class="px-6 py-4 font-medium text-neutral-400">Category</th>
-								<th class="px-6 py-4 font-medium text-neutral-400 text-right">Size</th>
+								<th class="px-6 py-4 font-medium text-neutral-400 cursor-pointer hover:text-foreground transition-colors group select-none" onclick={() => toggleSort('name')}>
+									<div class="flex items-center gap-2">Target {#if sortKey === 'name'} <span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={14}/>{:else}<ArrowDownWideNarrow size={14}/>{/if}</span> {/if}</div>
+								</th>
+								<th class="px-6 py-4 font-medium text-neutral-400 cursor-pointer hover:text-foreground transition-colors group select-none" onclick={() => toggleSort('category')}>
+									<div class="flex items-center gap-2">Category {#if sortKey === 'category'} <span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={14}/>{:else}<ArrowDownWideNarrow size={14}/>{/if}</span> {/if}</div>
+								</th>
+								<th class="px-6 py-4 font-medium text-neutral-400 cursor-pointer hover:text-foreground transition-colors group select-none text-right" onclick={() => toggleSort('size')}>
+									<div class="flex items-center justify-end gap-2">Size {#if sortKey === 'size'} <span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={14}/>{:else}<ArrowDownWideNarrow size={14}/>{/if}</span> {/if}</div>
+								</th>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-border">
-							{#each cleanerStore.results as item (item.id)}
+							{#each sortedResults as item (item.id)}
 								{#if item.exists && item.size > 0}
 									<tr class="hover:bg-neutral-900/40 transition-colors" in:fade={{duration: 200}} out:fly={{x: 20, duration: 300}}>
 										<td class="px-6 py-4">

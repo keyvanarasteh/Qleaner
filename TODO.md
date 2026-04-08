@@ -9,7 +9,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - **28.** **Windows Update Cache:** Add Windows `SoftwareDistribution/Download` cache cleaning (requires elevated privileges).
 - [x] **37.** **Dry-Run Architecture:** Implement true dry-run scanning in Rust. Currently, [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301) just executes. Provide a simulation API to guarantee file counts.
 - **53.** **Hover Context Menus:** Use `bits-ui` Dropdown to add right-click options to rows: "Open Folder Location", "Add to Ignore List", "View Properties".
-- **56.** **Sortable Columns:** Add clickable headers (Target, Category, Size) to sort the `cleanerStore.results` dynamically based on `$derived` state.
+- [x] **56.** **Sortable Columns:** Add clickable headers (Target, Category, Size) to sort the `cleanerStore.results` dynamically based on `$derived` state.
 - [x] **76.** **Error Toast Notifications:** Instead of silently failing to delete an item, pipe exact Rust error messages up to a frontend `sonner` toast system.
 - **77.** **Sudo Policy Enforcer:** If macOS requires Full Disk Access, implement a watcher that detects lacking permissions and redirects the user to `System Settings -> Privacy`.
 - **78.** **Sandboxed IFrame Documentation:** Move help texts and privacy policies to a segregated iframe without standard script contexts.
@@ -75,7 +75,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - **35.** **Extension Profiling:** Add analysis for massive log files (`.log`, `.trace`) sitting abandoned in desktop directories.
 - **42.** **Virtual Listicles:** The table renders every row. If thousands of junk locations are found, the DOM will lag. Implement `svelte-virtual-list`.
 - **55.** **Sticky Table Headers:** Ensure the `thead` uses `z-index` and `backdrop-blur` properly behind overflowing content inside a constrained wrapper.
-- **57.** **Settings Sidebar:** Add a collapsible tool sidebar with navigation for "Dashboard", "Rules", "Schedules", and "Settings".
+- [x] **57.** **Settings Sidebar:** Add a collapsible tool sidebar with navigation for "Dashboard", "Rules", "Schedules", and "Settings".
 - **59.** **Keyboard Shortcuts:** Implement `svelte-window` keyboard listeners (e.g., `CMD+Enter` to start cleaning, `Esc` to cancel).
 - **60.** **Accessibility (A11y):** Form checkboxes lack `aria-label` or `<label>` wrapping. Add strict strict accessibility tags to the data grid.
 - **65.** **Path Traversal Protection:** Sanitize whatever IDs or Paths are sent from Svelte to Rust. Prevent `../../` attacks if the IPC gets intercepted.
