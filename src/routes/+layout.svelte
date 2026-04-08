@@ -6,13 +6,24 @@
   import NeuralBootSequence from '$lib/components/ui/NeuralBootSequence.svelte';
   import Sidebar from '$lib/components/ui/Sidebar.svelte';
   import { themeState } from '$lib/stores/theme.svelte';
-  import { Sun, Moon, Minus, Square, X, Monitor } from 'lucide-svelte';
+  import { Sun, Moon, Minus, Square, X, Monitor, ShieldAlert } from 'lucide-svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
+  import { invoke } from '@tauri-apps/api/core';
+  import { onMount } from 'svelte';
   
   const appWindow = typeof window !== 'undefined' ? getCurrentWindow() : null;
 
   let { children } = $props();
   let isBooted = $state(false);
+  let hasFullDiskAccess = $state(true);
+
+  onMount(async () => {
+    try {
+      hasFullDiskAccess = await invoke('check_system_disk_access');
+    } catch(e) {
+      console.error(e);
+    }
+  });
 </script>
 <ParaglideJS {i18n}>
 
@@ -44,6 +55,20 @@
   {#if isBooted}
     <Sidebar />
     <div class="flex-1 flex flex-col h-full min-w-0 relative">
+      {#if !hasFullDiskAccess}
+        <div class="w-full bg-red-500/10 border-b border-red-500/20 px-4 py-2 flex items-center justify-between text-sm shrink-0">
+          <div class="flex items-center gap-2 text-red-400">
+            <ShieldAlert size={16} />
+            <span class="font-medium">Full Disk Access Required:</span> Qleaner needs privacy capabilities to scan system caches effectively.
+          </div>
+          <button 
+            class="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-md font-medium transition-colors"
+            onclick={() => invoke('open_privacy_settings')}
+          >
+            Open Settings
+          </button>
+        </div>
+      {/if}
       <!-- Floating Theme Toggle -->
       <button 
         class="absolute top-6 right-6 z-[100] p-2 rounded-full shadow-md bg-card border border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-300"

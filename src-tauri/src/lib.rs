@@ -98,6 +98,8 @@ pub fn run() {
             cleaner::get_schedules,
             cleaner::add_schedule,
             cleaner::delete_schedule,
+            cleaner::check_system_disk_access,
+            cleaner::open_privacy_settings,
             cleaner::toggle_schedule,
         ])
         .run(tauri::generate_context!())

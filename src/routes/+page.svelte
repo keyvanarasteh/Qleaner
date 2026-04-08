@@ -3,6 +3,7 @@
 	import NumberFlow from '@number-flow/svelte';
 	import { Dialog, DropdownMenu } from 'bits-ui';
 	import { fade, fly } from 'svelte/transition';
+	import TreemapWidget from '$lib/components/ui/TreemapWidget.svelte';
 	import { 
 		HardDrive, 
 		Cpu, 
@@ -47,6 +48,15 @@
 			return 0;
 		})
 	);
+
+	let rowHeight = 73;
+	let scrollY = $state(0);
+	let viewportHeight = $state(600);
+	
+	let activeResults = $derived(sortedResults.filter(i => i.exists && i.size > 0).map((r, idx) => ({ ...r, virtualIndex: idx })));
+	let startIndex = $derived(Math.max(0, Math.floor(scrollY / rowHeight) - 5));
+	let endIndex = $derived(Math.min(activeResults.length, Math.ceil((scrollY + viewportHeight) / rowHeight) + 5));
+	let virtualResults = $derived(activeResults.slice(startIndex, endIndex));
 
 	function toggleSort(key: 'name' | 'category' | 'size') {
 		if (sortKey === key) {
@@ -120,18 +130,18 @@
 
 	<!-- Stats Row -->
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-		<div class="lg:col-span-2 bg-card border border-border p-6 rounded-xl relative overflow-hidden group hover:border-primary/50 transition-colors shadow-sm">
+		<div class="lg:col-span-2 bg-card border border-border p-6 rounded-xl relative overflow-hidden group hover:border-primary/50 transition-colors shadow-sm flex flex-col justify-between">
 			<div class="absolute -right-12 -top-12 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
-			<div class="relative flex items-center justify-between">
+			<div class="relative flex items-center justify-between mb-8">
 				<div class="flex items-center gap-4">
 					<div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
 						<HardDrive class="text-primary w-6 h-6" />
 					</div>
 					<div>
-						<p class="text-sm font-medium text-neutral-400">Storage Free</p>
+						<p class="text-sm font-medium text-neutral-400">Total System Capacity</p>
 						<h3 class="text-3xl font-bold tracking-tight flex items-baseline gap-1">
 							{#if cleanerStore.stats}
-								<NumberFlow value={cleanerStore.stats.disk.free / 1073741824} format={{ maximumFractionDigits: 1 }} />
+								<NumberFlow value={cleanerStore.stats.disk.total / 1073741824} format={{ maximumFractionDigits: 1 }} />
 								<span class="text-xl text-neutral-500 font-medium">GB</span>
 							{:else}
 								--
@@ -139,17 +149,36 @@
 						</h3>
 					</div>
 				</div>
-				{#if cleanerStore.stats}
-					<div class="text-right">
-						<p class="text-sm font-medium text-neutral-400">Total Capacity</p>
-						<p class="text-lg font-medium text-foreground">{cleanerStore.stats.disk.total_human}</p>
+			</div>
+			
+			{#if cleanerStore.results.filter(r => r.size > 0 && r.exists).length > 0}
+				<div class="w-full relative z-10 pt-4 border-t border-border/50 flex-1 flex flex-col justify-end">
+					<p class="text-sm font-medium text-neutral-400 mb-4 px-1">Segmented Optimization Payloads</p>
+					<TreemapWidget 
+						items={
+							Object.entries(
+								cleanerStore.results
+									.filter(r => r.size > 0 && r.exists)
+									.reduce((acc, curr) => { 
+										acc[curr.category] = (acc[curr.category] || 0) + curr.size; 
+										return acc; 
+									}, {} as Record<string, number>)
+							).map(([name, size]) => ({ name, category: name, size })).sort((a,b) => b.size - a.size)
+						} 
+					/>
+				</div>
+			{:else if cleanerStore.stats}
+				<div class="w-full relative z-10 flex-1 flex flex-col justify-end">
+					<div class="flex items-center justify-between text-xs text-neutral-500 mb-2 font-mono px-1">
+						<span>Used: {cleanerStore.stats.disk.used_human}</span>
+						<span>Free: {cleanerStore.stats.disk.free_human}</span>
 					</div>
-				{/if}
-			</div>
-			{#if cleanerStore.stats}
-			<div class="mt-8 w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
-				<div class="h-full bg-primary/80 transition-all duration-1000" style="width: {cleanerStore.stats.disk.percent}%"></div>
-			</div>
+					<div class="w-full h-3 bg-neutral-800 rounded-full overflow-hidden shadow-inner">
+						<div class="h-full bg-primary/80 relative" style="width: {cleanerStore.stats.disk.percent}%">
+							<div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent w-[200%] animate-[shimmer_2s_infinite]"></div>
+						</div>
+					</div>
+				</div>
 			{/if}
 		</div>
 
@@ -270,93 +299,89 @@
 				</button>
 			</div>
 
-			<div class="bg-card border border-border rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col">
-				<div class="flex-1 overflow-auto">
-					<table class="w-full text-left text-sm whitespace-nowrap min-w-[700px]">
-						<thead class="bg-neutral-900/50 sticky top-0 z-10 backdrop-blur-md">
-							<tr>
-								<th class="px-6 py-4 font-medium text-neutral-400 w-12">
-									<input 
-										type="checkbox" 
-										aria-label="Select all targets"
-										class="rounded border-border bg-transparent text-primary focus:ring-primary h-4 w-4"
-										checked={cleanerStore.results.length > 0 && cleanerStore.results.every(r => r.selected)}
-										onchange={(e) => cleanerStore.toggleAll(e.currentTarget.checked)}
-									/>
-								</th>
-								<th class="px-6 py-4 font-medium text-neutral-400 cursor-pointer hover:text-foreground transition-colors group select-none" onclick={() => toggleSort('name')}>
-									<div class="flex items-center gap-2">Target {#if sortKey === 'name'} <span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={14}/>{:else}<ArrowDownWideNarrow size={14}/>{/if}</span> {/if}</div>
-								</th>
-								<th class="px-6 py-4 font-medium text-neutral-400 cursor-pointer hover:text-foreground transition-colors group select-none" onclick={() => toggleSort('category')}>
-									<div class="flex items-center gap-2">Category {#if sortKey === 'category'} <span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={14}/>{:else}<ArrowDownWideNarrow size={14}/>{/if}</span> {/if}</div>
-								</th>
-								<th class="px-6 py-4 font-medium text-neutral-400 cursor-pointer hover:text-foreground transition-colors group select-none text-right" onclick={() => toggleSort('size')}>
-									<div class="flex items-center justify-end gap-2">Size {#if sortKey === 'size'} <span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={14}/>{:else}<ArrowDownWideNarrow size={14}/>{/if}</span> {/if}</div>
-								</th>
-								<th class="px-6 py-4 w-12 text-center text-neutral-400 font-medium"></th>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-border">
-							{#each sortedResults as item (item.id)}
-								{#if item.exists && item.size > 0}
-									<tr class="hover:bg-neutral-900/40 transition-colors" in:fade={{duration: 200}} out:fly={{x: 20, duration: 300}}>
-										<td class="px-6 py-4">
-											<input 
-												type="checkbox" 
-												aria-label="Select {item.name}"
-												class="rounded border-border bg-transparent text-primary focus:ring-primary h-4 w-4"
-												checked={item.selected}
-												onchange={(e) => cleanerStore.toggleItem(item.id, e.currentTarget.checked)}
-											/>
-										</td>
-										<td class="px-6 py-4">
-											<div class="flex flex-col">
-												<span class="font-medium text-foreground">{item.name}</span>
-												<span class="text-neutral-500 text-xs w-max" title={item.path}>{truncatePath(item.path)}</span>
-											</div>
-										</td>
-										<td class="px-6 py-4">
-											{#if item.category.toLowerCase().includes('privacy') || item.risk === 'High'}
-												<span class="px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-sm flex items-center w-max gap-1">
-												   <ShieldAlert size={12}/> {item.category}
-												</span>
-											{:else if item.category.toLowerCase().includes('system')}
-												<span class="px-2.5 py-1 text-xs font-medium rounded-md bg-neutral-800 text-neutral-400 border border-border shadow-sm w-max inline-block">
-												   {item.category}
-												</span>
-											{:else}
-												<span class="px-2.5 py-1 text-xs font-medium rounded-md bg-primary/10 text-primary border border-primary/20 shadow-sm w-max inline-block">
-												   {item.category}
-												</span>
-											{/if}
-										</td>
-										<td class="px-6 py-4 text-right font-medium text-foreground">{item.size_human}</td>
-										<td class="px-6 py-4 text-right">
-											<DropdownMenu.Root>
-												<DropdownMenu.Trigger class="p-2 hover:bg-neutral-800 rounded-md transition-colors text-neutral-400 hover:text-foreground">
-													<MoreHorizontal size={16} />
-												</DropdownMenu.Trigger>
-												<DropdownMenu.Content class="w-48 bg-card border border-border rounded-xl shadow-xl py-1 z-50 overflow-hidden">
-													<DropdownMenu.Item class="px-3 py-2 text-sm text-neutral-300 hover:bg-primary/20 hover:text-primary cursor-pointer flex items-center gap-2 outline-none transition-colors" onclick={() => cleanerStore.openFolder(item.path)}>
-														<FolderOpen size={14} /> Open Location
-													</DropdownMenu.Item>
-													<DropdownMenu.Item class="px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-foreground cursor-pointer flex items-center gap-2 outline-none transition-colors" onclick={() => cleanerStore.ignoreItem(item.id)}>
-														<EyeOff size={14} /> Add to Ignore List
-													</DropdownMenu.Item>
-													<DropdownMenu.Separator class="h-px bg-border my-1" />
-													<DropdownMenu.Item class="px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-foreground cursor-pointer flex items-center gap-2 outline-none transition-colors">
-														<Info size={14} /> View Properties
-													</DropdownMenu.Item>
-												</DropdownMenu.Content>
-											</DropdownMenu.Root>
-										</td>
-									</tr>
-								{/if}
+			<div class="bg-card border border-border rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col relative w-full">
+				<div class="flex-1 overflow-auto" onscroll={(e) => scrollY = e.currentTarget.scrollTop} bind:clientHeight={viewportHeight}>
+					{#if activeResults.length > 0}
+					<div role="table" class="w-full text-left text-sm whitespace-nowrap min-w-[700px] flex flex-col">
+						<div class="bg-neutral-900/50 sticky top-0 z-20 backdrop-blur-md grid grid-cols-[4rem_minmax(0,1fr)_12rem_8rem_4rem] border-b border-border items-center">
+							<div class="px-6 py-4 font-medium text-neutral-400">
+								<input 
+									type="checkbox" 
+									aria-label="Select all targets"
+									class="rounded border-border bg-transparent text-primary focus:ring-primary h-4 w-4"
+									checked={cleanerStore.results.length > 0 && cleanerStore.results.every(r => r.selected)}
+									onchange={(e) => cleanerStore.toggleAll(e.currentTarget.checked)}
+								/>
+							</div>
+							<button class="px-6 py-4 font-medium text-neutral-400 hover:text-foreground transition-colors group select-none flex items-center justify-start gap-2" onclick={() => toggleSort('name')}>
+								Target {#if sortKey === 'name'} <span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={14}/>{:else}<ArrowDownWideNarrow size={14}/>{/if}</span> {/if}
+							</button>
+							<button class="px-6 py-4 font-medium text-neutral-400 hover:text-foreground transition-colors group select-none flex items-center justify-start gap-2" onclick={() => toggleSort('category')}>
+								Category {#if sortKey === 'category'} <span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={14}/>{:else}<ArrowDownWideNarrow size={14}/>{/if}</span> {/if}
+							</button>
+							<button class="px-6 py-4 font-medium text-neutral-400 hover:text-foreground transition-colors group select-none flex items-center justify-end gap-2 text-right" onclick={() => toggleSort('size')}>
+								Size {#if sortKey === 'size'} <span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={14}/>{:else}<ArrowDownWideNarrow size={14}/>{/if}</span> {/if}
+							</button>
+							<div class="px-6 py-4 text-center"></div>
+						</div>
+						<div class="relative" style="height: {activeResults.length * rowHeight}px;">
+							{#each virtualResults as item (item.id)}
+								<div class="absolute w-full hover:bg-neutral-900/40 transition-colors grid grid-cols-[4rem_minmax(0,1fr)_12rem_8rem_4rem] items-center border-b border-border/50 group" style="top: {item.virtualIndex * rowHeight}px; height: {rowHeight}px;">
+									<div class="px-6 py-4">
+										<input 
+											type="checkbox" 
+											aria-label="Select {item.name}"
+											class="rounded border-border bg-transparent text-primary focus:ring-primary h-4 w-4"
+											checked={item.selected}
+											onchange={(e) => cleanerStore.toggleItem(item.id, e.currentTarget.checked)}
+										/>
+									</div>
+									<div class="px-6 py-4 flex flex-col justify-center overflow-hidden">
+										<span class="font-medium text-foreground truncate">{item.name}</span>
+										<span class="text-neutral-500 text-xs truncate" title={item.path}>{truncatePath(item.path)}</span>
+									</div>
+									<div class="px-6 py-4 flex items-center">
+										{#if item.category.toLowerCase().includes('privacy') || item.risk === 'High'}
+											<span class="px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-sm flex items-center w-max gap-1">
+												<ShieldAlert size={12}/> {item.category}
+											</span>
+										{:else if item.category.toLowerCase().includes('system')}
+											<span class="px-2.5 py-1 text-xs font-medium rounded-md bg-neutral-800 text-neutral-400 border border-border shadow-sm w-max inline-block">
+												{item.category}
+											</span>
+										{:else}
+											<span class="px-2.5 py-1 text-xs font-medium rounded-md bg-primary/10 text-primary border border-primary/20 shadow-sm w-max inline-block">
+												{item.category}
+											</span>
+										{/if}
+									</div>
+									<div class="px-6 py-4 text-right font-medium text-foreground">{item.size_human}</div>
+									<div class="px-6 py-4 flex justify-end">
+										<DropdownMenu.Root>
+											<DropdownMenu.Trigger class="p-2 hover:bg-neutral-800 rounded-md transition-colors text-neutral-400 hover:text-foreground">
+												<MoreHorizontal size={16} />
+											</DropdownMenu.Trigger>
+											<DropdownMenu.Content class="w-48 bg-card border border-border rounded-xl shadow-xl py-1 z-50 overflow-hidden">
+												<DropdownMenu.Item class="px-3 py-2 text-sm text-neutral-300 hover:bg-primary/20 hover:text-primary cursor-pointer flex items-center gap-2 outline-none transition-colors" onclick={() => cleanerStore.openFolder(item.path)}>
+													<FolderOpen size={14} /> Open Location
+												</DropdownMenu.Item>
+												<DropdownMenu.Item class="px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-foreground cursor-pointer flex items-center gap-2 outline-none transition-colors" onclick={() => cleanerStore.ignoreItem(item.id)}>
+													<EyeOff size={14} /> Add to Ignore List
+												</DropdownMenu.Item>
+												<DropdownMenu.Separator class="h-px bg-border my-1" />
+												<DropdownMenu.Item class="px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-foreground cursor-pointer flex items-center gap-2 outline-none transition-colors">
+													<Info size={14} /> View Properties
+												</DropdownMenu.Item>
+											</DropdownMenu.Content>
+										</DropdownMenu.Root>
+									</div>
+								</div>
 							{/each}
-						</tbody>
-					</table>
+						</div>
+					</div>
+					{/if}
 					
-					{#if cleanerStore.results.filter(r => r.exists && r.size > 0).length === 0 && !cleanerStore.isScanning}
+					{#if activeResults.length === 0 && !cleanerStore.isScanning}
 						<div class="text-center py-20 text-neutral-500 flex flex-col items-center justify-center h-full" in:fade={{duration: 400, delay: 300}}>
 							<div class="relative mb-6">
 								<div class="absolute inset-0 bg-green-500/20 blur-2xl rounded-full"></div>

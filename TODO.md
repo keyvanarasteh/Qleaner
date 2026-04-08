@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 109 | **Done:** 93 | **Ongoing:** 0 | **Pending:** 16
+> **Total Tasks:** 109 | **Done:** 97 | **Ongoing:** 0 | **Pending:** 12
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -9,10 +9,10 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ---
 
 ## 🚨 Tier 1: High Priority (Architecture, Security, DevOps & CLI)
-- [ ] **127.** **UX Coverage (Shredding Policy Selector):** Implement a strict settings toggle within Svelte assigning the security mode (Standard Unlink vs DoD 5220.22-M Multi-pass) dynamically triggering backend modes globally.
+- [x] **127.** **UX Coverage (Shredding Policy Selector):** Implement a strict settings toggle within Svelte assigning the security mode (Standard Unlink vs DoD 5220.22-M Multi-pass) dynamically triggering backend modes globally.
 *Critical infrastructure, permissions, testing, and distribution pipelines.*
 - [ ] **28.** **Windows Update Cache:** Add Windows `SoftwareDistribution/Download` cache cleaning (requires elevated privileges).
-- [ ] **77.** **Sudo Policy Enforcer:** If macOS requires Full Disk Access, implement a watcher that detects lacking permissions and redirects the user to `System Settings -> Privacy`.
+- [x] **77.** **Sudo Policy Enforcer:** If macOS requires Full Disk Access, implement a watcher that detects lacking permissions and redirects the user to `System Settings -> Privacy`.
 - [ ] **78.** **Sandboxed IFrame Documentation:** Move help texts and privacy policies to a segregated iframe without standard script contexts.
 - [ ] **85.** **E2E Tests (Playwright):** Integrate Playwright for Tauri E2E testing to simulate UI clicks automatically spawning mocked Tauri commands.
 - [ ] **86.** **Component Tests (Vitest):** Add `vitest` for the layout logic, specifically testing the reactivity of `$derived(totalSelectedSize)`.

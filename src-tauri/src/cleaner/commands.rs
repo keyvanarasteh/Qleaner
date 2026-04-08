@@ -735,3 +735,32 @@ pub(crate) async fn perform_docker_clean(uri: &str) {
         _ => {}
     }
 }
+
+#[tauri::command]
+pub async fn check_system_disk_access() -> Result<bool, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let tcc_path = "/Library/Application Support/com.apple.TCC";
+        match tokio::fs::metadata(tcc_path).await {
+            Ok(_) => Ok(true),
+            Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => Ok(false),
+            Err(_) => Ok(true), // Fallback if TCC doesn't exist logically
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Ok(true)
+    }
+}
+
+#[tauri::command]
+pub async fn open_privacy_settings() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = tokio::process::Command::new("open")
+            .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")
+            .spawn();
+    }
+    Ok(())
+}
+
