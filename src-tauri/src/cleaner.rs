@@ -306,7 +306,7 @@ pub fn get_system_stats(state: State<'_, CleanerState>) -> SystemStats {
     
     sys.refresh_cpu_usage();
     sys.refresh_memory();
-    disks.refresh_list();
+    disks.refresh(true);
 
     let total_mem = sys.total_memory();
     let used_mem = sys.used_memory();
