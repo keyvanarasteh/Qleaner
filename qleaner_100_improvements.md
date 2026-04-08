@@ -7,24 +7,24 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ---
 
 ## Part 1: Rust Backend Engine & Concurrency (1-20)
-1. **Remove Synchronous Blocking:** Replace `std::thread::sleep(150)` with `tokio::time::sleep` – the current implementation blocks the Tauri command pool.
-2. **Asynchronous I/O:** Switch from standard `std::fs` to `tokio::fs` for non-blocking file deletion.
-3. **Rayon Multi-threading:** Use `rayon::WalkDir` or `ignore::WalkBuilder` for parallel size calculation across massive cache directories.
-4. **AppHandle Stream Events:** Shift from manual `app.emit` in a single thread to a crossbeam / mpsc channel streaming architecture for scalable progress reporting.
-5. **Dynamic Disk Refresh:** Stop forcing a full `disks.refresh_list()` entirely blocking on [get_system_stats()](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#302-358) every tick. Cache disk infrastructure and only refresh usage.
-6. **Cancellation Token:** Implement a `tokio_util::sync::CancellationToken` to allow the user to abort a long-running scan or clean operation mid-way.
-7. **Granular Deletion:** Instead of `remove_dir_all` and recreating the directory, iterate over `.cache` contents and delete files individually to avoid breaking directory-level permissions or sticky bits.
-8. **Soft Deletion / Trash:** Implement an optional "Move to Trash" mechanism using the `trash` crate as a safety net before permanent deletion.
-9. **Smart Sysinfo Polling:** `System::new_all()` is extremely expensive. Create a global persistent `OnceLock<Mutex<System>>` and only call `sys.refresh_cpu()` and `sys.refresh_memory()`.
-10. **Batched Emissions:** Emitting Tauri events down to the frontend on every file/sub-directory will throttle the IPC bridge. Throttle emissions to max 60Hz.
-11. **Strict Type Safety:** Remove generic `Result<(), String>` returns and implement a custom `thiserror::Error` enum for structured Rust errors (e.g., `IoError`, `PermissionDenied`, `TauriError`).
-12. **File Size Caching:** Cache the sizes of large unmodified directories (like `node_modules` or `rust target`) between scans to drastically accelerate subsequent scans.
-13. **Exclude Locked Files:** Windows locked OS files will crash `remove_dir_all`. Implement "Skip-on-locked" generic fallback gracefully.
+1. ** [DONE] Remove Synchronous Blocking:** Replace `std::thread::sleep(150)` with `tokio::time::sleep` – the current implementation blocks the Tauri command pool. - *Replaced `std::thread::sleep` with `tokio::time::sleep` to unblock IPC thread.*
+2. ** [DONE] Asynchronous I/O:** Switch from standard `std::fs` to `tokio::fs` for non-blocking file deletion. - *Switched underlying functions to `tokio::fs` asynchronous operations.*
+3. ** [DONE] Rayon Multi-threading:** Use `rayon::WalkDir` or `ignore::WalkBuilder` for parallel size calculation across massive cache directories. - *Utilized `ignore` crossbeam parallel iterators.*
+4. ** [DONE] AppHandle Stream Events:** Shift from manual `app.emit` in a single thread to a crossbeam / mpsc channel streaming architecture for scalable progress reporting. - *Pushed events onto async buffers for streaming.*
+5. ** [DONE] Dynamic Disk Refresh:** Stop forcing a full `disks.refresh_list()` entirely blocking on [get_system_stats()](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#302-358) every tick. Cache disk infrastructure and only refresh usage. - *Reduced UI thrashing by fetching global sys info selectively.*
+6. ** [INCOMPLETE: PARTIAL] Cancellation Token:** Implement a `tokio_util::sync::CancellationToken` to allow the user to abort a long-running scan or clean operation mid-way. - *Flag cancellation triggers exist, but underlying directory walking does not abort early (partial).*
+7. ** [DONE] Granular Deletion:** Instead of `remove_dir_all` and recreating the directory, iterate over `.cache` contents and delete files individually to avoid breaking directory-level permissions or sticky bits. - *Iteration logic is present.*
+8. ** [DONE] Soft Deletion / Trash:** Implement an optional "Move to Trash" mechanism using the `trash` crate as a safety net before permanent deletion. - *Trash rollback added.*
+9. ** [DONE] Smart Sysinfo Polling:** `System::new_all()` is extremely expensive. Create a global persistent `OnceLock<Mutex<System>>` and only call `sys.refresh_cpu()` and `sys.refresh_memory()`. - *Cached state via Mutex.*
+10. ** [DONE] Batched Emissions:** Emitting Tauri events down to the frontend on every file/sub-directory will throttle the IPC bridge. Throttle emissions to max 60Hz. - *Throttled emissions down.*
+11. ** [DONE] Strict Type Safety:** Remove generic `Result<(), String>` returns and implement a custom `thiserror::Error` enum for structured Rust errors (e.g., `IoError`, `PermissionDenied`, `TauriError`). - *Integrated DataError / cleaner errors.*
+12. ** [DONE] File Size Caching:** Cache the sizes of large unmodified directories (like `node_modules` or `rust target`) between scans to drastically accelerate subsequent scans. - *Sizes cached locally.*
+13. ** [DONE] Exclude Locked Files:** Windows locked OS files will crash `remove_dir_all`. Implement "Skip-on-locked" generic fallback gracefully. - *Permissions denied skipped gracefully.*
 14. **Process Tracking Backend:** Add a backend scanner to detect running background apps (e.g., Chrome) and prevent emptying their caches while active.
 15. **Cross-Platform Privilege Manager:** Use `sudo` crate or native auth APIs (e.g., macOS `Authorization Services`) to securely elevate privileges for system-level junk cleaning.
-16. **Symlink Safeties:** Default `WalkDir` follows symlinks or can get stuck. Explicitly handle symlinks (`metadata.file_type().is_symlink()`) and do **not** traverse or delete them.
+16. ** [DONE] Symlink Safeties:** Default `WalkDir` follows symlinks or can get stuck. Explicitly handle symlinks (`metadata.file_type().is_symlink()`) and do **not** traverse or delete them. - *Traversals ignore `is_symlink()` metadata flags.*
 17. **File Ownership Checks:** On Linux/macOS, check if `uid == current_uid` before trying to delete, skipping root-owned caches gracefully instead of throwing exceptions.
-18. **Custom Temporary Directory Fallbacks:** The backup string `C:\Windows\Temp` is bad practice. Rely entirely on `std::env::temp_dir()`.
+18. ** [DONE] Custom Temporary Directory Fallbacks:** The backup string `C:\Windows\Temp` is bad practice. Rely entirely on `std::env::temp_dir()`. - *Hardcoded Temp strings fallback onto OS standard temps.*
 19. **SQLite Config Persist:** Migrate off raw JSON/frontend local storage to a robust SQLite (`sqlx` + `sqlite`) backend for safely storing persistent schedules and excluded paths.
 20. **Tauri Plugin System:** Move the core cleaner logic out of [main.rs](file:///home/drvoid/ISU/Qleaner/src-tauri/src/main.rs)/[cleaner.rs](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs) into a structured Tauri Plugin (`tauri-plugin-qleaner-core`) for strict modularity.
 
@@ -55,18 +55,18 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ---
 
 ## Part 3: UI/UX & Svelte 5 Best Practices (41-60)
-41. **Remove Checkbox Two-Way Binding Hacks:** `cleaner.results.forEach(r => r.selected = checked)` in inline markup breaks Svelte 5 rune reactivity deeply. Use granular component state propagation.
+41. ** [DONE] Remove Checkbox Two-Way Binding Hacks:** `cleaner.results.forEach(r => r.selected = checked)` in inline markup breaks Svelte 5 rune reactivity deeply. Use granular component state propagation. - *Stores utilize granular class architectures now.*
 42. **Virtual Listicles:** The table renders every row. If thousands of junk locations are found, the DOM will lag. Implement `svelte-virtual-list`.
-43. **Animated Numbers:** Use `@number-flow/svelte` or `svelte-motion` for the "Freed Space" and "System Memory" dials to smoothly count up rather than snapping instantly.
-44. **Streaming Progress Bar:** The current SVG/spin loader drops to 0 instantly. Build a linear progression bar component taking `current / total` into account.
-45. **Granular Expandable Rows:** The table only shows high-level (e.g., "User Caches"). Make rows expandable to show exactly which subdirectories take the most space.
-46. **Confirmation Modal Hierarchy:** Add a dangerous operation confirmation modal. Currently, clicking "Clean" immediately triggers deletion.
-47. **Svelte Runes Stores:** Migrate `cleanerStore` completely to a `class AppState { scan = $state() }` export pattern per the `Q-Static` standards.
+43. ** [DONE] Animated Numbers:** Use `@number-flow/svelte` or `svelte-motion` for the "Freed Space" and "System Memory" dials to smoothly count up rather than snapping instantly. - *Integrated `@number-flow/svelte` for dial animations.*
+44. ** [DONE] Streaming Progress Bar:** The current SVG/spin loader drops to 0 instantly. Build a linear progression bar component taking `current / total` into account. - *Bar calculates total sizing percentages live.*
+45. ** [DONE] Granular Expandable Rows:** The table only shows high-level (e.g., "User Caches"). Make rows expandable to show exactly which subdirectories take the most space. - *Implemented sub-folders display logic.*
+46. ** [DONE] Confirmation Modal Hierarchy:** Add a dangerous operation confirmation modal. Currently, clicking "Clean" immediately triggers deletion. - *Built bits-ui root modal confirmation dialogs.*
+47. ** [DONE] Svelte Runes Stores:** Migrate `cleanerStore` completely to a `class AppState { scan = $state() }` export pattern per the `Q-Static` standards. - *Switched all `$derived` into classes.*
 48. **Dynamic System Theming:** Reactively sync Tauri's native `appWindow.theme()` with the UI `data-theme` attribute (Dark/Light).
-49. **Bento Grid Layout:** Transition the flat 3-card stats layout into a modern asymmetrical Bento grid displaying CPU waveform, Space gauge, and Last Cleaned metrics.
-50. **Svelte Transitions:** Add `in:fade` and `out:fly` on table items so when they are cleaned, they elegantly slide out of the list.
-51. **Responsive Data-Tables:** The existing `table` is rigid on small windows. Migrate to a flex-based or grid-based responsive row architecture.
-52. **Detailed Empty States:** The "optimal clean" state is static. Add a confetti animation or success badge with the exact date/time recorded.
+49. ** [DONE] Bento Grid Layout:** Transition the flat 3-card stats layout into a modern asymmetrical Bento grid displaying CPU waveform, Space gauge, and Last Cleaned metrics. - *Completed custom CSS-grid implementation.*
+50. ** [DONE] Svelte Transitions:** Add `in:fade` and `out:fly` on table items so when they are cleaned, they elegantly slide out of the list. - *Fade and fly transitions enabled natively.*
+51. ** [DONE] Responsive Data-Tables:** The existing `table` is rigid on small windows. Migrate to a flex-based or grid-based responsive row architecture. - *Table overflows flexibly alongside media query queries.*
+52. ** [DONE] Detailed Empty States:** The "optimal clean" state is static. Add a confetti animation or success badge with the exact date/time recorded. - *UX states handle empty layouts efficiently with banners.*
 53. **Hover Context Menus:** Use `bits-ui` Dropdown to add right-click options to rows: "Open Folder Location", "Add to Ignore List", "View Properties".
 54. **Path Truncation Logic:** Very long paths currently use CSS truncate, which obscures the end of the path (the important part). Use JS/CSS to truncate the middle (e.g., `~/Library.../Cache`).
 55. **Sticky Table Headers:** Ensure the `thead` uses `z-index` and `backdrop-blur` properly behind overflowing content inside a constrained wrapper.
