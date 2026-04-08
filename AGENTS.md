@@ -39,7 +39,7 @@
   <section id="devops-reporting">
     <rule id="DO-01" severity="required">As you progress, `TODO.md` MUST be marked with details: done, ongoing, implemented, incomplete-implemented, or skipped (with reason, info and details). YOU MUST update the `📈 Progress Statistics` header at the top of the file on every state change.</rule>
     <rule id="DO-02" severity="required">Agent MUST commit and push code on every stable point.</rule>
-    <rule id="DO-03" severity="required">Report each progress on commits via Telegram. BOT_TOKEN: `8619989850:AAHO-tPqLa88lTLzz7SmhtyK8dwn5aTfZoY`. Admin IDs: `1426904527` (keyvan arasteh).</rule>
+    <rule id="DO-03" severity="required">Report each progress on commits via Telegram. BOT_TOKEN: `8605055500:AAFEXsohgjJsWdlpoRXw1q_EDpIpop7Ecl0`. Admin IDs: `1426904527` (keyvan arasteh).</rule>
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════

@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 109 | **Done:** 79 | **Ongoing:** 0 | **Pending:** 30
+> **Total Tasks:** 109 | **Done:** 81 | **Ongoing:** 0 | **Pending:** 28
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -28,8 +28,6 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ## ⚡ Tier 2: Medium Priority (Core Mechanics, Scanners & Competitor Vision)
 *Detection heuristics, deep system integrations, and multi-OS sweeps.*
 - [ ] **21.** **Node.js Modules Sweeper:** Add dedicated scans for orphaned `node_modules` folders using [ignore](file:///home/drvoid/ISU/Qleaner/.gitignore) glob targeting within user space.
-- [ ] **22.** **NPM/Yarn/PNPM Cache:** Explicitly target `~/.npm`, `~/AppData/Local/npm-cache`, and `~/.local/share/pnpm/store`.
-- [ ] **23.** **Rust Cargo Cache:** Add scanning for `~/.cargo/registry` and `~/.cargo/git`.
 - [ ] **24.** **Rust Target Sweeper:** Detect redundant `target/debug` directories in inactive Rust projects using heuristic age-based scanning.
 - [ ] **26.** **macOS Xcode DerivedData:** Add `~/Library/Developer/Xcode/DerivedData` for massive storage recovery on macOS.
 - [ ] **27.** **macOS iOS Simulators:** Scan and clear outdated iOS simulator caches (`~/Library/Developer/CoreSimulator/Devices`).
@@ -72,6 +70,8 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 
 ---
 ## ✅ Completed Tasks (Archive)
+- [x] **22.** **NPM/Yarn/PNPM Cache:** Explicitly target `~/.npm`, `~/AppData/Local/npm-cache`, and `~/.local/share/pnpm/store`.
+- [x] **23.** **Rust Cargo Cache:** Add scanning for `~/.cargo/registry` and `~/.cargo/git`.
 - [x] **58.** **Native OS Window Controls:** Add custom `titlebar` integration (via `<div data-tauri-drag-region>`) using Lucide icons for macOS/Windows custom decorators.
 - [x] **55.** **Sticky Table Headers:** Ensure the `thead` uses `z-index` and `backdrop-blur` properly behind overflowing content inside a constrained wrapper.
 - [x] **59.** **Keyboard Shortcuts:** Implement `svelte-window` keyboard listeners (e.g., `CMD+Enter` to start cleaning, `Esc` to cancel).

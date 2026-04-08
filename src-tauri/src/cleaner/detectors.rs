@@ -175,6 +175,87 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
         });
     }
 
+    // --- Developer Caches (NPM, Yarn, PNPM, Rust Cargo) ---
+    // NPM
+    let npm_path = if os == "windows" {
+        dirs::data_local_dir().unwrap_or(home.clone()).join("npm-cache")
+    } else {
+        home.join(".npm")
+    };
+    locations.push(CacheLocation {
+        id: "npm_cache".into(),
+        path: npm_path.to_string_lossy().to_string(),
+        name: "NPM Cache".into(),
+        description: "Node.js global dependency artifacts".into(),
+        category: "Developer".into(),
+        hint: "Clear if npm install behaves weirdly or you need space.".into(),
+        impact: "Next npm install might take slightly longer.".into(),
+        risk: "low".into(),
+        size: 0, size_human: "0B".into(), selected: true, exists: false,
+    });
+
+    // PNPM
+    let pnpm_path = if os == "windows" {
+        dirs::data_local_dir().unwrap_or(home.clone()).join("pnpm").join("store")
+    } else {
+        home.join(".local/share/pnpm/store")
+    };
+    locations.push(CacheLocation {
+        id: "pnpm_store".into(),
+        path: pnpm_path.to_string_lossy().to_string(),
+        name: "PNPM Global Store".into(),
+        description: "Massive shared PNPM workspace dependencies".into(),
+        category: "Developer".into(),
+        hint: "Safely cleans unlinked or orphaned package versions.".into(),
+        impact: "Projects will re-link packages upon next installation.".into(),
+        risk: "low".into(),
+        size: 0, size_human: "0B".into(), selected: false, exists: false,
+    });
+
+    // Yarn
+    let yarn_path = if os == "windows" {
+        dirs::data_local_dir().unwrap_or(home.clone()).join("Yarn").join("Cache")
+    } else {
+        home.join(".cache/yarn")
+    };
+    locations.push(CacheLocation {
+        id: "yarn_cache".into(),
+        path: yarn_path.to_string_lossy().to_string(),
+        name: "Yarn Cache".into(),
+        description: "Yarn global offline mirrors and packages".into(),
+        category: "Developer".into(),
+        hint: "Free up disk space safely.".into(),
+        impact: "Initial yarn installations will re-download modules.".into(),
+        risk: "low".into(),
+        size: 0, size_human: "0B".into(), selected: true, exists: false,
+    });
+
+    // Rust Cargo Registry
+    locations.push(CacheLocation {
+        id: "cargo_registry".into(),
+        path: home.join(".cargo/registry").to_string_lossy().to_string(),
+        name: "Rust Cargo Registry".into(),
+        description: "Cached crate tarballs spanned across all builds".into(),
+        category: "Developer".into(),
+        hint: "Grows massively over time. Re-downloads missing crates transparently.".into(),
+        impact: "First `cargo build` will re-fetch required crates.".into(),
+        risk: "low".into(),
+        size: 0, size_human: "0B".into(), selected: true, exists: false,
+    });
+
+    // Rust Cargo Git
+    locations.push(CacheLocation {
+        id: "cargo_git".into(),
+        path: home.join(".cargo/git").to_string_lossy().to_string(),
+        name: "Rust Cargo Git Caches".into(),
+        description: "Git repositories cloned by cargo builds".into(),
+        category: "Developer".into(),
+        hint: "Clean if you have orphaned git dependencies.".into(),
+        impact: "Safe to delete.".into(),
+        risk: "low".into(),
+        size: 0, size_human: "0B".into(), selected: true, exists: false,
+    });
+
     locations
 }
 
