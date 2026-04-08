@@ -474,3 +474,32 @@ pub fn get_system_stats() -> SystemStats {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_human_readable_size() {
+        assert_eq!(human_readable_size(0), "0 B");
+        assert_eq!(human_readable_size(500), "500 B");
+        assert_eq!(human_readable_size(1024), "1.0 KB");
+        assert_eq!(human_readable_size(1536), "1.5 KB");
+        assert_eq!(human_readable_size(1048576), "1.0 MB");
+        assert_eq!(human_readable_size(1073741824), "1.0 GB");
+    }
+
+    #[test]
+    fn test_get_directory_size() {
+        let dir = tempdir().unwrap();
+        let path1 = dir.path().join("file1.txt");
+        let path2 = dir.path().join("file2.txt");
+
+        fs::write(&path1, "Hello").unwrap(); // 5 bytes
+        fs::write(&path2, "World!").unwrap(); // 6 bytes
+
+        let size = get_directory_size(dir.path());
+        assert_eq!(size, 11);
+    }
+}
