@@ -56,5 +56,12 @@
     </rule>
     <rule id="EXT-02" severity="required">If a task does not exist in `TODO.md` but is requested by the user or identified as crucial, add it directly to `TODO.md`.</rule>
   </section>
+  <!-- ═══════════════════════════════════════════════════════════
+       DEVELOPMENT PROGRESS REPORTING & PLANNING
+  ═══════════════════════════════════════════════════════════ -->
+  <section id="dev-progress" source="gemini-directives">
+    <rule id="DEV-01" severity="required">All progress MUST include structured Tasks and an implementation plan. Agents are required to rigorously break down UI and backend features before coding.</rule>
+    <rule id="DEV-02" severity="required">Throughout the development process, `TODO.md` MUST be updated continuously with detailed architectures and planning to help the user decide the next steps.</rule>
+  </section>
 
 </rules>

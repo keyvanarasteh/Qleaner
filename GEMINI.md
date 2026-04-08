@@ -28,8 +28,11 @@ Qleaner projesi elit açık kaynak standartlarına (**Pro GitHub Config**) sahip
 ## 4. UI/UX "Qleaner" Estetiği
 
 Tasarımlar TailwindCSS v4 altyapısı ile beslenir. Standart renk temamız; neon data göstergelerini barındıran Obsidiyen (simsiyah) uzay / laboratuvar hissiyatlı profesyonel koyu teknoloji temalarıdır. Tıpkı kodlar gibi, UI hatları da jilet kadar keskin olmalıdır.
+## 5. Algorithmic Processing & Planning (MANDATORY)
+- **Görev ve Planlama**: Tüm aşamalar/ilerlemeler mutlaka Kesin Görevler (Tasks) ve yapılandırılmış bir Uygulama Planı (Implementation Plan) barındırmalıdır.
+- **TODO Güncellemeleri**: İlerledikçe `TODO.md` dosyası, kullanıcının bir sonraki adıma karar vermesine yardımcı olacak şekilde detayı artırılarak sürekli güncellenmelidir.
 
-## 5. DevOps, Progress Tracking & Telegram Reporting (MANDATORY)
+## 6. DevOps, Progress Tracking & Telegram Reporting (MANDATORY)
 
 - **TODO.md Updates:** As you progress, `TODO.md` MUST be marked accordingly with details: `[x] done`, `[/] ongoing`, `[ ] implemented`, `[ ] incomplete-implemented`, or `[-] skipped` (including the exact reason, info, and details if skipped).
   - YOU MUST update the `📈 Progress Statistics` header at the top of the file on every single state change.
@@ -39,7 +42,7 @@ Tasarımlar TailwindCSS v4 altyapısı ile beslenir. Standart renk temamız; neo
   - BOT_TOKEN: `8605055500:AAFEXsohgjJsWdlpoRXw1q_EDpIpop7Ecl0`
   - DevOps Manager (keyvan arasteh): `1426904527`
 
-## 6. Svelte & Tauri AI Integration Libraries (MANDATORY)
+## 7. Svelte & Tauri AI Integration Libraries (MANDATORY)
 
 You must utilize and strictly adhere to these external directories whenever you implement UI/Backend code:
 
