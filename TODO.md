@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 105 | **Done:** 39 | **Ongoing:** 0 | **Pending:** 66
+> **Total Tasks:** 105 | **Done:** 44 | **Ongoing:** 0 | **Pending:** 61
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -60,15 +60,15 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - **71.** **Anti-Virus Whitelisting Notice:** Some aggressive deep clean iterations scan locked folders triggering Windows Defender. Detect and handle `ACCESS_DENIED` transparently.
 - **73.** **Shredding (Secure Erase):** Implement optional secure wiping (multi-pass overwrite) rather than just `unlink` for sensitive metadata.
 - **74.** **Memory Scrubbing (Rust):** Implement `zeroize` strictly on any internal variables tracking decrypted user paths or credentials during scanning.
-- **75.** **Database Locking Avoidance:** If Chrome is running, its `Cache.db` is locked. Detecting the `.lock` file and skipping the database prevents DB corruption.
-- **80.** **Memory Leak Profiling:** Ensure `Mutex` states in Tauri aren't holding vast arrays of `WalkDir` `DirEntry` objects in memory indefinitely after a scan completes.
+- [x] **75.** **Database Locking Avoidance:** If Chrome is running, its `Cache.db` is locked. Detecting the `.lock` file and skipping the database prevents DB corruption.
+- [x] **80.** **Memory Leak Profiling:** Ensure `Mutex` states in Tauri aren't holding vast arrays of `WalkDir` `DirEntry` objects in memory indefinitely after a scan completes.
 - **89.** **Code Signing:** Add notarization pipelines for macOS integration so it doesn't get blocked by Gatekeeper.
 - **91.** **WiX Configuration (Windows):** Add an installer license, custom EULA, and start menu shortcut entries via refined `tauri.conf.json` WiX fragments.
 - **113.** **Checksum Duplicate Finder (Dupes):** Integrate an `xxHash` high-speed engine to locate duplicated photos, archives, and binaries cross-system, yielding safe deletion arrays (inspired by `dupeGuru` / `Gemini 2`).
 - **114.** **Startup Manager (Start):** Hook into OS background agents (LaunchDaemons on Mac, registry `Run` keys on Win, Systemd on Linux) to toggle bloatware auto-starting (inspired by `Stacer` / `CCleaner`).
 - **115.** **System Native App Uninstaller (Uninst):** Intercept standard `.app` or registry uninstalls scanning for deep orphan plist caches globally to secure total application removals (inspired by `App Cleaner & Uninstaller`).
 - **116.** **Privacy & Browser Exploitation Sweeper (Privacy):** Go beyond standard `.cache` by aggressively locating tracking cookies, form histories, DOM storages, and telemetry residues across Edge/Chrome/Firefox (inspired by `BleachBit`).
-- **117.** **File Shredder (Shred):** Implement DoD 5220.22-M compliant multi-pass secure erasures to guarantee sensitive data files cannot be recovered via standard forensics (inspired by `CleanMyMac`).
+- [x] **117.** **File Shredder (Shred):** Implement DoD 5220.22-M compliant multi-pass secure erasures to guarantee sensitive data files cannot be recovered via standard forensics (inspired by `CleanMyMac`).
 - **119.** **OS Registry Repair (Reg):** Introduce distinct Windows registry scanning looking for invalid paths, ghost uninstaller references, and rogue COM keys (inspired by `Wise / Glary Utilities`).
 
 ---
@@ -82,8 +82,8 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [x] **57.** **Settings Sidebar:** Add a collapsible tool sidebar with navigation for "Dashboard", "Rules", "Schedules", and "Settings".
 - **59.** **Keyboard Shortcuts:** Implement `svelte-window` keyboard listeners (e.g., `CMD+Enter` to start cleaning, `Esc` to cancel).
 - **60.** **Accessibility (A11y):** Form checkboxes lack `aria-label` or `<label>` wrapping. Add strict strict accessibility tags to the data grid.
-- **65.** **Path Traversal Protection:** Sanitize whatever IDs or Paths are sent from Svelte to Rust. Prevent `../../` attacks if the IPC gets intercepted.
-- **68.** **Retry Logic (File Deletion):** Files might be temporarily locked. Add a backoff retry logic (e.g., `3 attempts, 100ms apart`) inside `std::fs::remove_dir_all`.
+- [x] **65.** **Path Traversal Protection:** Sanitize whatever IDs or Paths are sent from Svelte to Rust. Prevent `../../` attacks if the IPC gets intercepted.
+- [x] **68.** **Retry Logic (File Deletion):** Files might be temporarily locked. Add a backoff retry logic (e.g., `3 attempts, 100ms apart`) inside `std::fs::remove_dir_all`.
 - **69.** **Detailed Logging (Tracing):** Add `tracing-subscriber` to rotate app activity logs to `~/.config/qleaner/app.log` for debugging and telemetry.
 - **70.** **Audit History Dashboard:** Record every deletion in an append-only JSON/SQLite "History" tab so users can see exactly what was removed and when.
 - **79.** **Session Cleanup Tracking:** Add a "Last Ran" timestamp enforced via cryptographic signing to prevent tampering with "System Health" scores.

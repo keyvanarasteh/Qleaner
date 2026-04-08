@@ -9,17 +9,19 @@
     Info, 
     Heart, 
     MessageSquare,
-    Activity
+    Activity,
+    ScrollText
   } from 'lucide-svelte';
 
   let currentPath = $derived($page.url.pathname);
 
-  type ValidRoute = '/' | '/rules' | '/schedules' | '/settings' | '/about' | '/donate' | '/feedback';
+  type ValidRoute = '/' | '/rules' | '/schedules' | '/settings' | '/about' | '/donate' | '/feedback' | '/history';
 
   const mainNav: Array<{name: string, path: ValidRoute, icon: any}> = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Rules', path: '/rules', icon: ShieldAlert },
     { name: 'Schedules', path: '/schedules', icon: CalendarClock },
+    { name: 'Audit', path: '/history', icon: ScrollText },
     { name: 'Settings', path: '/settings', icon: Settings }
   ];
 
