@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 109 | **Done:** 72 | **Ongoing:** 0 | **Pending:** 37
+> **Total Tasks:** 109 | **Done:** 73 | **Ongoing:** 0 | **Pending:** 36
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -10,7 +10,6 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 
 ## 🚨 Tier 1: High Priority (Architecture, Security, DevOps & CLI)
 - [ ] **127.** **UX Coverage (Shredding Policy Selector):** Implement a strict settings toggle within Svelte assigning the security mode (Standard Unlink vs DoD 5220.22-M Multi-pass) dynamically triggering backend modes globally.
-- [ ] **129.** **UX Coverage (Network Velocity Sensors):** Expand the dashboard dynamically injecting `sysinfo::Networks` mapped network bandwidth states rendering alongside the OS CPU metrics synchronously.
 *Critical infrastructure, permissions, testing, and distribution pipelines.*
 - [ ] **28.** **Windows Update Cache:** Add Windows `SoftwareDistribution/Download` cache cleaning (requires elevated privileges).
 - [ ] **77.** **Sudo Policy Enforcer:** If macOS requires Full Disk Access, implement a watcher that detects lacking permissions and redirects the user to `System Settings -> Privacy`.
@@ -79,6 +78,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 
 ---
 ## ✅ Completed Tasks (Archive)
+- [x] **129.** **UX Coverage (Network Velocity Sensors):** Expand the dashboard dynamically injecting `sysinfo::Networks` mapped network bandwidth states rendering alongside the OS CPU metrics synchronously.
 - [x] **128.** **UX Coverage (Privacy Isolation Panel):** The UX needs visual filtering mechanisms or badges sorting natively over privacy footprints compared to generic caches transparently displaying severity.
 - [x] **126.** **UX Coverage (SQLite Schedules CRUD):** Connect the UI `/schedules` page via Tauri IPC to actively leverage the existing `sqlx` database configuration setting automated background sweeping.
 - [x] **37.** **Dry-Run Architecture:** Implement true dry-run scanning in Rust. Currently, [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301) just executes. Provide a simulation API to guarantee file counts.

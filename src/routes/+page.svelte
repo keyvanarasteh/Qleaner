@@ -19,7 +19,8 @@
 		FolderOpen,
 		EyeOff,
 		Info,
-		XOctagon
+		XOctagon,
+		Globe
 	} from 'lucide-svelte';
 	
 	let totalSelectedSize = $derived(
@@ -100,7 +101,7 @@
 	</header>
 
 	<!-- Stats Row -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
 		<div class="lg:col-span-2 bg-card border border-border p-6 rounded-xl relative overflow-hidden group hover:border-primary/50 transition-colors shadow-sm">
 			<div class="absolute -right-12 -top-12 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
 			<div class="relative flex items-center justify-between">
@@ -172,6 +173,37 @@
 						--%
 					{/if}
 				</h3>
+			</div>
+		</div>
+
+		<div class="bg-card border border-border p-6 rounded-xl flex flex-col justify-between hover:border-primary/50 transition-colors shadow-sm">
+			<div class="flex items-center gap-3 mb-4">
+				<Globe class="text-primary w-5 h-5" />
+				<p class="text-sm font-medium text-neutral-400">Network Link</p>
+			</div>
+			<div>
+				<div class="flex items-center justify-between">
+					<div class="flex flex-col">
+						<span class="text-xs text-neutral-500 font-medium">Out</span>
+						<span class="text-base font-bold tracking-tight text-foreground">
+							{#if cleanerStore.stats}
+								{cleanerStore.stats.network.tx_human}
+							{:else}
+								--
+							{/if}
+						</span>
+					</div>
+					<div class="flex flex-col text-right">
+						<span class="text-xs text-neutral-500 font-medium">In</span>
+						<span class="text-base font-bold tracking-tight text-foreground">
+							{#if cleanerStore.stats}
+								{cleanerStore.stats.network.rx_human}
+							{:else}
+								--
+							{/if}
+						</span>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>

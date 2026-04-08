@@ -5,7 +5,7 @@ use tokio::fs;
 use tokio_util::sync::CancellationToken;
 
 use super::error::CleanerError;
-use super::models::{CacheLocation, CleanerState, ScanProgress, SystemStats, MemoryStats, DiskStats, SYSTEM, DISKS, CleanResponse};
+use super::models::{CacheLocation, CleanerState, ScanProgress, SystemStats, MemoryStats, DiskStats, NetworkStats, SYSTEM, DISKS, NETWORKS, CleanResponse};
 use super::scanner::{get_directory_size, human_readable_size};
 use super::detectors::{
     get_cache_locations, get_installed_bundle_ids, detect_container_orphans, 
@@ -381,12 +381,14 @@ pub async fn clean_items(
 pub fn get_system_stats() -> SystemStats {
     let mut sys = SYSTEM.get().expect("SYSTEM not initialized").lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut disks = DISKS.get().expect("DISKS not initialized").lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut net = NETWORKS.get().expect("NETWORKS not initialized").lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     
     sys.refresh_cpu_usage();
     sys.refresh_memory();
     for disk in disks.list_mut() {
         disk.refresh();
     }
+    net.refresh(true);
 
     let total_mem = sys.total_memory();
     let used_mem = sys.used_memory();
@@ -421,6 +423,13 @@ pub fn get_system_stats() -> SystemStats {
             break;
         }
     }
+    
+    let mut tx_bytes = 0;
+    let mut rx_bytes = 0;
+    for (_name, net_data) in net.iter() {
+        tx_bytes += net_data.transmitted();
+        rx_bytes += net_data.received();
+    }
 
     SystemStats {
         cpu_percent: sys.global_cpu_usage(),
@@ -443,6 +452,12 @@ pub fn get_system_stats() -> SystemStats {
             total_human: human_readable_size(disk_total),
             used_human: human_readable_size(disk_used),
             free_human: human_readable_size(disk_free),
+        },
+        network: NetworkStats {
+            tx_bytes,
+            rx_bytes,
+            tx_human: format!("{}/s", human_readable_size(tx_bytes)),
+            rx_human: format!("{}/s", human_readable_size(rx_bytes)),
         }
     }
 }

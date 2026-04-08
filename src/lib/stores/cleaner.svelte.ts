@@ -56,6 +56,12 @@ export type SystemStats = {
     used_human: string;
     free_human: string;
   };
+  network: {
+    tx_bytes: number;
+    rx_bytes: number;
+    tx_human: string;
+    rx_human: string;
+  };
 };
 
 class CleanerStore {

@@ -42,6 +42,15 @@ pub struct SystemStats {
     pub cpu_temp: f32,
     pub memory: MemoryStats,
     pub disk: DiskStats,
+    pub network: NetworkStats,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NetworkStats {
+    pub tx_bytes: u64,
+    pub rx_bytes: u64,
+    pub tx_human: String,
+    pub rx_human: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -76,8 +85,11 @@ pub struct ScanProgress {
     pub total_size: u64,
 }
 
+use sysinfo::Networks;
+
 pub static SYSTEM: OnceLock<Mutex<System>> = OnceLock::new();
 pub static DISKS: OnceLock<Mutex<Disks>> = OnceLock::new();
+pub static NETWORKS: OnceLock<Mutex<Networks>> = OnceLock::new();
 
 pub struct CleanerState {
     pub scan_results: tokio::sync::Mutex<Vec<CacheLocation>>,
@@ -92,6 +104,7 @@ impl CleanerState {
     pub fn new() -> Self {
         SYSTEM.get_or_init(|| Mutex::new(System::new_all()));
         DISKS.get_or_init(|| Mutex::new(Disks::new_with_refreshed_list()));
+        NETWORKS.get_or_init(|| Mutex::new(Networks::new_with_refreshed_list()));
         Self {
             scan_results: tokio::sync::Mutex::new(Vec::new()),
             scan_in_progress: tokio::sync::Mutex::new(false),
