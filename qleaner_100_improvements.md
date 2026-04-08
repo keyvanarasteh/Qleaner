@@ -1,0 +1,125 @@
+# Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
+
+The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
+
+Below are **100 required best implementations, fixes, and improvements** to transition Qleaner from a basic MVP into an enterprise-grade, high-performance system optimization tool.
+
+---
+
+## Part 1: Rust Backend Engine & Concurrency (1-20)
+1. **Remove Synchronous Blocking:** Replace `std::thread::sleep(150)` with `tokio::time::sleep` – the current implementation blocks the Tauri command pool.
+2. **Asynchronous I/O:** Switch from standard `std::fs` to `tokio::fs` for non-blocking file deletion.
+3. **Rayon Multi-threading:** Use `rayon::WalkDir` or `ignore::WalkBuilder` for parallel size calculation across massive cache directories.
+4. **AppHandle Stream Events:** Shift from manual `app.emit` in a single thread to a crossbeam / mpsc channel streaming architecture for scalable progress reporting.
+5. **Dynamic Disk Refresh:** Stop forcing a full `disks.refresh_list()` entirely blocking on [get_system_stats()](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#302-358) every tick. Cache disk infrastructure and only refresh usage.
+6. **Cancellation Token:** Implement a `tokio_util::sync::CancellationToken` to allow the user to abort a long-running scan or clean operation mid-way.
+7. **Granular Deletion:** Instead of `remove_dir_all` and recreating the directory, iterate over `.cache` contents and delete files individually to avoid breaking directory-level permissions or sticky bits.
+8. **Soft Deletion / Trash:** Implement an optional "Move to Trash" mechanism using the `trash` crate as a safety net before permanent deletion.
+9. **Smart Sysinfo Polling:** `System::new_all()` is extremely expensive. Create a global persistent `OnceLock<Mutex<System>>` and only call `sys.refresh_cpu()` and `sys.refresh_memory()`.
+10. **Batched Emissions:** Emitting Tauri events down to the frontend on every file/sub-directory will throttle the IPC bridge. Throttle emissions to max 60Hz.
+11. **Strict Type Safety:** Remove generic `Result<(), String>` returns and implement a custom `thiserror::Error` enum for structured Rust errors (e.g., `IoError`, `PermissionDenied`, `TauriError`).
+12. **File Size Caching:** Cache the sizes of large unmodified directories (like `node_modules` or `rust target`) between scans to drastically accelerate subsequent scans.
+13. **Exclude Locked Files:** Windows locked OS files will crash `remove_dir_all`. Implement "Skip-on-locked" generic fallback gracefully.
+14. **Process Tracking Backend:** Add a backend scanner to detect running background apps (e.g., Chrome) and prevent emptying their caches while active.
+15. **Cross-Platform Privilege Manager:** Use `sudo` crate or native auth APIs (e.g., macOS `Authorization Services`) to securely elevate privileges for system-level junk cleaning.
+16. **Symlink Safeties:** Default `WalkDir` follows symlinks or can get stuck. Explicitly handle symlinks (`metadata.file_type().is_symlink()`) and do **not** traverse or delete them.
+17. **File Ownership Checks:** On Linux/macOS, check if `uid == current_uid` before trying to delete, skipping root-owned caches gracefully instead of throwing exceptions.
+18. **Custom Temporary Directory Fallbacks:** The backup string `C:\Windows\Temp` is bad practice. Rely entirely on `std::env::temp_dir()`.
+19. **SQLite Config Persist:** Migrate off raw JSON/frontend local storage to a robust SQLite (`sqlx` + `sqlite`) backend for safely storing persistent schedules and excluded paths.
+20. **Tauri Plugin System:** Move the core cleaner logic out of [main.rs](file:///home/drvoid/ISU/Qleaner/src-tauri/src/main.rs)/[cleaner.rs](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs) into a structured Tauri Plugin (`tauri-plugin-qleaner-core`) for strict modularity.
+
+---
+
+## Part 2: Advanced Scanning Definitions & OS Integration (21-40)
+21. **Node.js Modules Sweeper:** Add dedicated scans for orphaned `node_modules` folders using [ignore](file:///home/drvoid/ISU/Qleaner/.gitignore) glob targeting within user space.
+22. **NPM/Yarn/PNPM Cache:** Explicitly target `~/.npm`, `~/AppData/Local/npm-cache`, and `~/.local/share/pnpm/store`.
+23. **Rust Cargo Cache:** Add scanning for `~/.cargo/registry` and `~/.cargo/git`.
+24. **Rust Target Sweeper:** Detect redundant `target/debug` directories in inactive Rust projects using heuristic age-based scanning.
+25. **Docker Builder Pruning:** Hook into the Docker CLI/socket to report and clean dangling images, volumes, and builder caches.
+26. **macOS Xcode DerivedData:** Add `~/Library/Developer/Xcode/DerivedData` for massive storage recovery on macOS.
+27. **macOS iOS Simulators:** Scan and clear outdated iOS simulator caches (`~/Library/Developer/CoreSimulator/Devices`).
+28. **Windows Update Cache:** Add Windows `SoftwareDistribution/Download` cache cleaning (requires elevated privileges).
+29. **Windows Prefetch:** Add `C:\Windows\Prefetch` analysis.
+30. **Linux Journalctl Size:** Scan via `journalctl --disk-usage` and offer to vacuum logs older than X days.
+31. **Linux Flatpak/Snap Leftovers:** Target `.var/app/` caches and `snap` leftover blobs.
+32. **Browser Forensic Cache:** Add distinct targets for Chrome, Firefox, Safari, Edge caches, separate from generic "User Caches".
+33. **Discord / Slack Cache:** Target Electron app cache folders (e.g., `~/Library/Application Support/Discord/Cache`).
+34. **Empty Directory Sweeper:** Add an optional pass that identifies deeply nested, entirely empty directory trees and prunes them.
+35. **Extension Profiling:** Add analysis for massive log files (`.log`, `.trace`) sitting abandoned in desktop directories.
+36. **Time-based Filtering:** Allow the user to specify "Only clean files older than X days" (e.g., keep caches from the last 24 hours).
+37. **Dry-Run Architecture:** Implement true dry-run scanning in Rust. Currently, [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301) just executes. Provide a simulation API to guarantee file counts.
+38. **Configurable Ignoring:** Add a global `.qleanerignore` list to explicitly block directories from ever being scanned or listed.
+39. **Dependency Uninstaller:** Identify orphaned applications (macOS `.app` leftover plists, Windows rogue regkeys).
+40. **Duplicated Files (Dedup):** Implement a fast checksum-based (xxHash) duplicate file finder.
+
+---
+
+## Part 3: UI/UX & Svelte 5 Best Practices (41-60)
+41. **Remove Checkbox Two-Way Binding Hacks:** `cleaner.results.forEach(r => r.selected = checked)` in inline markup breaks Svelte 5 rune reactivity deeply. Use granular component state propagation.
+42. **Virtual Listicles:** The table renders every row. If thousands of junk locations are found, the DOM will lag. Implement `svelte-virtual-list`.
+43. **Animated Numbers:** Use `@number-flow/svelte` or `svelte-motion` for the "Freed Space" and "System Memory" dials to smoothly count up rather than snapping instantly.
+44. **Streaming Progress Bar:** The current SVG/spin loader drops to 0 instantly. Build a linear progression bar component taking `current / total` into account.
+45. **Granular Expandable Rows:** The table only shows high-level (e.g., "User Caches"). Make rows expandable to show exactly which subdirectories take the most space.
+46. **Confirmation Modal Hierarchy:** Add a dangerous operation confirmation modal. Currently, clicking "Clean" immediately triggers deletion.
+47. **Svelte Runes Stores:** Migrate `cleanerStore` completely to a `class AppState { scan = $state() }` export pattern per the `Q-Static` standards.
+48. **Dynamic System Theming:** Reactively sync Tauri's native `appWindow.theme()` with the UI `data-theme` attribute (Dark/Light).
+49. **Bento Grid Layout:** Transition the flat 3-card stats layout into a modern asymmetrical Bento grid displaying CPU waveform, Space gauge, and Last Cleaned metrics.
+50. **Svelte Transitions:** Add `in:fade` and `out:fly` on table items so when they are cleaned, they elegantly slide out of the list.
+51. **Responsive Data-Tables:** The existing `table` is rigid on small windows. Migrate to a flex-based or grid-based responsive row architecture.
+52. **Detailed Empty States:** The "optimal clean" state is static. Add a confetti animation or success badge with the exact date/time recorded.
+53. **Hover Context Menus:** Use `bits-ui` Dropdown to add right-click options to rows: "Open Folder Location", "Add to Ignore List", "View Properties".
+54. **Path Truncation Logic:** Very long paths currently use CSS truncate, which obscures the end of the path (the important part). Use JS/CSS to truncate the middle (e.g., `~/Library.../Cache`).
+55. **Sticky Table Headers:** Ensure the `thead` uses `z-index` and `backdrop-blur` properly behind overflowing content inside a constrained wrapper.
+56. **Sortable Columns:** Add clickable headers (Target, Category, Size) to sort the `cleanerStore.results` dynamically based on `$derived` state.
+57. **Settings Sidebar:** Add a collapsible tool sidebar with navigation for "Dashboard", "Rules", "Schedules", and "Settings".
+58. **Native OS Window Controls:** Add custom `titlebar` integration (via `<div data-tauri-drag-region>`) using Lucide icons for macOS/Windows custom decorators.
+59. **Keyboard Shortcuts:** Implement `svelte-window` keyboard listeners (e.g., `CMD+Enter` to start cleaning, `Esc` to cancel).
+60. **Accessibility (A11y):** Form checkboxes lack `aria-label` or `<label>` wrapping. Add strict strict accessibility tags to the data grid.
+
+---
+
+## Part 4: Security, Privacy & Error Handling (61-80)
+61. **Strict Content Security Policy (CSP):** The [+page.svelte](file:///home/drvoid/ISU/Qleaner/src/routes/+page.svelte) lacks CSP. Enforce rigid metas limiting `script-src` and `connect-src` specifically to Tauri IPC limits.
+62. **Tauri Capabilities Locking:** Lock down `tauri.conf.json` explicitly allowing *only* the specific [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301), [start_scan](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#217-275) commands. Deny wildcards.
+63. **Scoped File System Access:** Ensure the Tauri API is strictly sandboxed. Never allow absolute path overrides from the frontend to [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301) – pass internal [id](file:///home/drvoid/Qix/Q-Static/src/lib/state/ui.svelte.ts#210-218) references instead.
+64. **Browser State Wiping Alert:** Auto-cleaning browser caches logs users out of sites. Require an explicit warning/consent checkbox before wiping "Chrome/Firefox Data".
+65. **Path Traversal Protection:** Sanitize whatever IDs or Paths are sent from Svelte to Rust. Prevent `../../` attacks if the IPC gets intercepted.
+66. **Sensitive File Hashing:** Verify critical file hashes (like OS `hosts` or config binaries) before assuming something is a "Cache" based on name alone.
+67. **Panic Recovery (Backend):** The `unwrap()` calls in `clean_items` (e.g., `state.scan_results.lock().unwrap()`) will crash the entire app if a thread poisons the lock. Handle mutex blocking safely.
+68. **Retry Logic (File Deletion):** Files might be temporarily locked. Add a backoff retry logic (e.g., `3 attempts, 100ms apart`) inside `std::fs::remove_dir_all`.
+69. **Detailed Logging (Tracing):** Add `tracing-subscriber` to rotate app activity logs to `~/.config/qleaner/app.log` for debugging and telemetry.
+70. **Audit History Dashboard:** Record every deletion in an append-only JSON/SQLite "History" tab so users can see exactly what was removed and when.
+71. **Anti-Virus Whitelisting Notice:** Some aggressive deep clean iterations scan locked folders triggering Windows Defender. Detect and handle `ACCESS_DENIED` transparently.
+72. **Network Sandbox:** Qleaner currently requires no internet. Ensure `tauri.conf.json` fully disables all network/HTTP protocols.
+73. **Shredding (Secure Erase):** Implement optional secure wiping (multi-pass overwrite) rather than just `unlink` for sensitive metadata.
+74. **Memory Scrubbing (Rust):** Implement `zeroize` strictly on any internal variables tracking decrypted user paths or credentials during scanning.
+75. **Database Locking Avoidance:** If Chrome is running, its `Cache.db` is locked. Detecting the `.lock` file and skipping the database prevents DB corruption.
+76. **Error Toast Notifications:** Instead of silently failing to delete an item, pipe exact Rust error messages up to a frontend `sonner` toast system.
+77. **Sudo Policy Enforcer:** If macOS requires Full Disk Access, implement a watcher that detects lacking permissions and redirects the user to `System Settings -> Privacy`.
+78. **Sandboxed IFrame Documentation:** Move help texts and privacy policies to a segregated iframe without standard script contexts.
+79. **Session Cleanup Tracking:** Add a "Last Ran" timestamp enforced via cryptographic signing to prevent tampering with "System Health" scores.
+80. **Memory Leak Profiling:** Ensure `Mutex` states in Tauri aren't holding vast arrays of `WalkDir` `DirEntry` objects in memory indefinitely after a scan completes.
+
+---
+
+## Part 5: DevOps, Testing & Tooling (81-100)
+81. **Cargo Clippy Pedantic:** Enforce `#![warn(clippy::pedantic)]` and `#![warn(clippy::unwrap_used)]` on the Rust codebase and fix the ~10 violations present.
+82. **ESLint & Prettier Strictness:** The Svelte app lacks the `@typescript-eslint/recommended-requiring-type-checking` rule set.
+83. **Unit Tests (Rust):** Create `#[cfg(test)]` modules for `get_directory_size` and `human_readable_size` (testing bounds and edge cases).
+84. **File System Mocking:** Implement `tempfile::TempDir` to construct fake junk directories and test `clean_items` locally without nuking real system caches.
+85. **E2E Tests (Playwright):** Integrate Playwright for Tauri E2E testing to simulate UI clicks automatically spawning mocked Tauri commands.
+86. **Component Tests (Vitest):** Add `vitest` for the layout logic, specifically testing the reactivity of `$derived(totalSelectedSize)`.
+87. **GitHub Actions CI/CD:** Add `.github/workflows/build.yml` compiling binaries for `x86_64-pc-windows-msvc`, `aarch64-apple-darwin`, and Linux AppImage.
+88. **Release Bump Pipeline:** Create a script (via `release-plz` or `standard-version`) to automate bumping version parity between `package.json` and `Cargo.toml`.
+89. **Code Signing:** Add notarization pipelines for macOS integration so it doesn't get blocked by Gatekeeper.
+90. **AppImage Builder (Linux):** Optimize Tauri config for modern Linux distributions with exact package exclusions.
+91. **WiX Configuration (Windows):** Add an installer license, custom EULA, and start menu shortcut entries via refined `tauri.conf.json` WiX fragments.
+92. **Vite Bundle Optimization:** Optimize `vite.config.js` to split `lucide-svelte` and `bits-ui` chunks to shrink the V8 snapshot load time.
+93. **Benchmarking Suite:** Add `criterion` to benchmark the regex speeds and disk traversal speeds against massive mocked file trees.
+94. **Feature Flags Architecture:** Implement Cargo features (e.g., `#[cfg(feature = "dangerous-clean")]`) to gate highly destructive beta features.
+95. **Rust Format Checks:** Automate `cargo fmt --check` in the pre-commit hook via husky.
+96. **Git LFS for Icons:** Store the `app-icon-real.png` (250KB) and other high-res assets in Git LFS instead of tracking raw blobs.
+97. **Internationalization (i18n):** Wrap raw strings ("Scanning...", "Target") using `paraglide` to prepare for multi-language rollouts.
+98. **Crash Reporting:** Integrate Sentry natively via `sentry-rust` and `sentry-javascript` to catch unhandled application panics remotely.
+99. **Update Auto-Updater:** Enable Tauri's built-in updater system (`plugin-updater`) so users get the latest optimization engines directly.
+100. **Architectural Readme:** Completely rewrite `README.md` introducing the dual Svelte/Rust architecture, contribution guidelines, PR templates, and local dev spin-up instructions.
