@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 105 | **Done:** 44 | **Ongoing:** 0 | **Pending:** 61
+> **Total Tasks:** 109 | **Done:** 44 | **Ongoing:** 0 | **Pending:** 65
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -96,6 +96,10 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - **108.** ** [BACKLOG] `fix-qicro-debugger` Repository Sync:** Review and merge any necessary commits strictly from the `fix-qicro-debugger` branch into master, culling deprecated segments.
 - **112.** **Disk Usage Visualization (Viz):** Implement high-performance Rust-backed Treemaps or Sunburst charts to visually map largest folders directly inside the Svelte UI (inspired by `DaisyDisk` / `WinDirStat`).
 - **120.** **System Hardware Monitoring:** Track real-time network up/down velocities, thermal temperatures, and exact CPU consumption per localized binary process (inspired by `Sensei`).
+- **126.** **UX Coverage (SQLite Schedules CRUD):** Connect the UI `/schedules` page via Tauri IPC to actively leverage the existing `sqlx` database configuration setting automated background sweeping.
+- **127.** **UX Coverage (Shredding Policy Selector):** Implement a strict settings toggle within Svelte assigning the security mode (Standard Unlink vs DoD 5220.22-M Multi-pass) dynamically triggering backend modes globally.
+- **128.** **UX Coverage (Privacy Isolation Panel):** The UX needs visual filtering mechanisms or badges sorting natively over privacy footprints compared to generic caches transparently displaying severity.
+- **129.** **UX Coverage (Network Velocity Sensors):** Expand the dashboard dynamically injecting `sysinfo::Networks` mapped network bandwidth states rendering alongside the OS CPU metrics synchronously.
 
 ---
 ## ✅ Completed Tasks (Archive)
