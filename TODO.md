@@ -1,32 +1,38 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 109 | **Done:** 97 | **Ongoing:** 0 | **Pending:** 12
+> **Total Tasks:** 129 | **Done:** 87 | **Ongoing:** 0 | **Pending:** 42
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
 Below are **100 required best implementations, fixes, and improvements** to transition Qleaner from a basic MVP into an enterprise-grade, high-performance system optimization tool.
----
 
 ## 🚨 Tier 1: High Priority (Architecture, Security, DevOps & CLI)
-- [x] **127.** **UX Coverage (Shredding Policy Selector):** Implement a strict settings toggle within Svelte assigning the security mode (Standard Unlink vs DoD 5220.22-M Multi-pass) dynamically triggering backend modes globally.
 *Critical infrastructure, permissions, testing, and distribution pipelines.*
-- [ ] **28.** **Windows Update Cache:** Add Windows `SoftwareDistribution/Download` cache cleaning (requires elevated privileges).
-- [x] **77.** **Sudo Policy Enforcer:** If macOS requires Full Disk Access, implement a watcher that detects lacking permissions and redirects the user to `System Settings -> Privacy`.
-- [ ] **78.** **Sandboxed IFrame Documentation:** Move help texts and privacy policies to a segregated iframe without standard script contexts.
-- [ ] **85.** **E2E Tests (Playwright):** Integrate Playwright for Tauri E2E testing to simulate UI clicks automatically spawning mocked Tauri commands.
-- [ ] **86.** **Component Tests (Vitest):** Add `vitest` for the layout logic, specifically testing the reactivity of `$derived(totalSelectedSize)`.
-- [ ] **98.** **Crash Reporting:** Integrate Sentry natively via `sentry-rust` and `sentry-javascript` to catch unhandled application panics remotely.
-- [ ] **99.** **Update Auto-Updater:** Enable Tauri's built-in updater system (`plugin-updater`) so users get the latest optimization engines directly.
-- [ ] **107.** ** [BACKLOG] Browser Playwright Execution:** Establish an automated flow to run the browser dynamically and close it alongside strict required logging messages and comments.
-- [ ] **109.** ** [BACKLOG] Universal Target Builds:** Scale the Linux actions explicitly for Ubuntu/Debian `.deb`, Fedora `.rpm`, Arch `.pacman` distributions alongside Apple notarization and Windows code signing.
-- [ ] **110.** ** [BACKLOG] Production Telemetry:** Evaluate privacy-respecting mechanisms for telemetry logging and crash dumps to monitor application stability natively.
 *Based on the competitive landscape observed in `docs/vison.html` mapping 30 top-tier disk utilities (e.g., CleanMyMac, BleachBit, DaisyDisk).*
+
+- [ ] **85.** **E2E Tests (Playwright):** Integrate Playwright for Tauri E2E testing to simulate UI clicks automatically spawning mocked Tauri commands.
+- [ ] **98.** **Crash Reporting:** Integrate Sentry natively via `sentry-rust` and `sentry-javascript` to catch unhandled application panics remotely.
+- [ ] **107.** ** [BACKLOG] Browser Playwright Execution:** Establish an automated flow to run the browser dynamically and close it alongside strict required logging messages and comments.
+- [ ] **110.** ** [BACKLOG] Production Telemetry:** Evaluate privacy-respecting mechanisms for telemetry logging and crash dumps to monitor application stability natively.
 - [ ] **118.** **Malware & Security Analysis (Malware):** Add baseline YARA scanning or static malware signature detection against cache payloads looking for common miners or rogue binaries (inspired by `Advanced SystemCare`).
+- [ ] **28.** **Windows Update Cache:** Add Windows `SoftwareDistribution/Download` cache cleaning (requires elevated privileges).
+- [ ] **78.** **Sandboxed IFrame Documentation:** Move help texts and privacy policies to a segregated iframe without standard script contexts.
+- [ ] **86.** **Component Tests (Vitest):** Add `vitest` for the layout logic, specifically testing the reactivity of `$derived(totalSelectedSize)`.
+- [ ] **99.** **Update Auto-Updater:** Enable Tauri's built-in updater system (`plugin-updater`) so users get the latest optimization engines directly.
+- [ ] **109.** ** [BACKLOG] Universal Target Builds:** Scale the Linux actions explicitly for Ubuntu/Debian `.deb`, Fedora `.rpm`, Arch `.pacman` distributions alongside Apple notarization and Windows code signing.
 
 ---
 ## ⚡ Tier 2: Medium Priority (Core Mechanics, Scanners & Competitor Vision)
 *Detection heuristics, deep system integrations, and multi-OS sweeps.*
+
+- [ ] **40.** **Duplicated Files (Dedup):** Implement a fast checksum-based (xxHash) duplicate file finder.
+- [ ] **71.** **Anti-Virus Whitelisting Notice:** Some aggressive deep clean iterations scan locked folders triggering Windows Defender. Detect and handle `ACCESS_DENIED` transparently.
+- [ ] **73.** **Shredding (Secure Erase):** Implement optional secure wiping (multi-pass overwrite) rather than just `unlink` for sensitive metadata.
+- [ ] **113.** **Checksum Duplicate Finder (Dupes):** Integrate an `xxHash` high-speed engine to locate duplicated photos, archives, and binaries cross-system, yielding safe deletion arrays (inspired by `dupeGuru` / `Gemini 2`).
+- [ ] **114.** **Startup Manager (Start):** Hook into OS background agents (LaunchDaemons on Mac, registry `Run` keys on Win, Systemd on Linux) to toggle bloatware auto-starting (inspired by `Stacer` / `CCleaner`).
+- [ ] **115.** **System Native App Uninstaller (Uninst):** Intercept standard `.app` or registry uninstalls scanning for deep orphan plist caches globally to secure total application removals (inspired by `App Cleaner & Uninstaller`).
+- [ ] **119.** **OS Registry Repair (Reg):** Introduce distinct Windows registry scanning looking for invalid paths, ghost uninstaller references, and rogue COM keys (inspired by `Wise / Glary Utilities`).
 - [ ] **21.** **Node.js Modules Sweeper:** Add dedicated scans for orphaned `node_modules` folders using [ignore](file:///home/drvoid/ISU/Qleaner/.gitignore) glob targeting within user space.
 - [ ] **24.** **Rust Target Sweeper:** Detect redundant `target/debug` directories in inactive Rust projects using heuristic age-based scanning.
 - [ ] **27.** **macOS iOS Simulators:** Scan and clear outdated iOS simulator caches (`~/Library/Developer/CoreSimulator/Devices`).
@@ -38,36 +44,33 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [ ] **36.** **Time-based Filtering:** Allow the user to specify "Only clean files older than X days" (e.g., keep caches from the last 24 hours).
 - [ ] **38.** **Configurable Ignoring:** Add a global `.qleanerignore` list to explicitly block directories from ever being scanned or listed.
 - [ ] **39.** **Dependency Uninstaller:** Identify orphaned applications (macOS `.app` leftover plists, Windows rogue regkeys).
-- [ ] **40.** **Duplicated Files (Dedup):** Implement a fast checksum-based (xxHash) duplicate file finder.
 - [ ] **62.** **Tauri Capabilities Locking:** Lock down `tauri.conf.json` explicitly allowing *only* the specific [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301), [start_scan](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#217-275) commands. Deny wildcards.
 - [ ] **64.** **Browser State Wiping Alert:** Auto-cleaning browser caches logs users out of sites. Require an explicit warning/consent checkbox before wiping "Chrome/Firefox Data".
 - [ ] **66.** **Sensitive File Hashing:** Verify critical file hashes (like OS `hosts` or config binaries) before assuming something is a "Cache" based on name alone.
-- [ ] **71.** **Anti-Virus Whitelisting Notice:** Some aggressive deep clean iterations scan locked folders triggering Windows Defender. Detect and handle `ACCESS_DENIED` transparently.
-- [ ] **73.** **Shredding (Secure Erase):** Implement optional secure wiping (multi-pass overwrite) rather than just `unlink` for sensitive metadata.
 - [ ] **74.** **Memory Scrubbing (Rust):** Implement `zeroize` strictly on any internal variables tracking decrypted user paths or credentials during scanning.
 - [ ] **89.** **Code Signing:** Add notarization pipelines for macOS integration so it doesn't get blocked by Gatekeeper.
 - [ ] **91.** **WiX Configuration (Windows):** Add an installer license, custom EULA, and start menu shortcut entries via refined `tauri.conf.json` WiX fragments.
-- [ ] **113.** **Checksum Duplicate Finder (Dupes):** Integrate an `xxHash` high-speed engine to locate duplicated photos, archives, and binaries cross-system, yielding safe deletion arrays (inspired by `dupeGuru` / `Gemini 2`).
-- [ ] **114.** **Startup Manager (Start):** Hook into OS background agents (LaunchDaemons on Mac, registry `Run` keys on Win, Systemd on Linux) to toggle bloatware auto-starting (inspired by `Stacer` / `CCleaner`).
-- [ ] **115.** **System Native App Uninstaller (Uninst):** Intercept standard `.app` or registry uninstalls scanning for deep orphan plist caches globally to secure total application removals (inspired by `App Cleaner & Uninstaller`).
-- [ ] **119.** **OS Registry Repair (Reg):** Introduce distinct Windows registry scanning looking for invalid paths, ghost uninstaller references, and rogue COM keys (inspired by `Wise / Glary Utilities`).
 
 ---
 ## 🎨 Tier 3: Low Priority (UI/UX, Polish & Minor Tooling)
 *Interface enhancements, quality of life, and visual feedback metrics.*
+
 - [ ] **20.** **Tauri Plugin System:** Move the core cleaner logic out of [main.rs](file:///home/drvoid/ISU/Qleaner/src-tauri/src/main.rs)/[cleaner.rs](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs) into a structured Tauri Plugin (`tauri-plugin-qleaner-core`) for strict modularity.
-- [x] **42.** **Virtual Listicles:** The table renders every row. If thousands of junk locations are found, the DOM will lag. Implement `svelte-virtual-list`.
+- [ ] **92.** **Vite Bundle Optimization:** Optimize `vite.config.js` to split `lucide-svelte` and `bits-ui` chunks to shrink the V8 snapshot load time.
 - [ ] **82.** **ESLint & Prettier Strictness:** The Svelte app lacks the `@typescript-eslint/recommended-requiring-type-checking` rule set.
 - [ ] **88.** **Release Bump Pipeline:** Create a script (via `release-plz` or `standard-version`) to automate bumping version parity between `package.json` and `Cargo.toml`.
-- [ ] **92.** **Vite Bundle Optimization:** Optimize `vite.config.js` to split `lucide-svelte` and `bits-ui` chunks to shrink the V8 snapshot load time.
 - [ ] **93.** **Benchmarking Suite:** Add `criterion` to benchmark the regex speeds and disk traversal speeds against massive mocked file trees.
 - [ ] **95.** **Rust Format Checks:** Automate `cargo fmt --check` in the pre-commit hook via husky.
 - [ ] **96.** **Git LFS for Icons:** Store the `app-icon-real.png` (250KB) and other high-res assets in Git LFS instead of tracking raw blobs.
 - [ ] **108.** ** [BACKLOG] `fix-qicro-debugger` Repository Sync:** Review and merge any necessary commits strictly from the `fix-qicro-debugger` branch into master, culling deprecated segments.
-- [x] **112.** **Disk Usage Visualization (Viz):** Implement high-performance Rust-backed Treemaps or Sunburst charts to visually map largest folders directly inside the Svelte UI (inspired by `DaisyDisk` / `WinDirStat`).
 
 ---
 ## ✅ Completed Tasks (Archive)
+*Historical preservation of implemented milestones.*
+- [x] **127.** **UX Coverage (Shredding Policy Selector):** Implement a strict settings toggle within Svelte assigning the security mode (Standard Unlink vs DoD 5220.22-M Multi-pass) dynamically triggering backend modes globally.
+- [x] **77.** **Sudo Policy Enforcer:** If macOS requires Full Disk Access, implement a watcher that detects lacking permissions and redirects the user to `System Settings -> Privacy`.
+- [x] **42.** **Virtual Listicles:** The table renders every row. If thousands of junk locations are found, the DOM will lag. Implement `svelte-virtual-list`.
+- [x] **112.** **Disk Usage Visualization (Viz):** Implement high-performance Rust-backed Treemaps or Sunburst charts to visually map largest folders directly inside the Svelte UI (inspired by `DaisyDisk` / `WinDirStat`).
 - [x] **26.** **macOS Xcode DerivedData:** Add `~/Library/Developer/Xcode/DerivedData` for massive storage recovery on macOS.
 - [x] **33.** **Discord / Slack Cache:** Target Electron app cache folders (e.g., `~/Library/Application Support/Discord/Cache`).
 - [x] **22.** **NPM/Yarn/PNPM Cache:** Explicitly target `~/.npm`, `~/AppData/Local/npm-cache`, and `~/.local/share/pnpm/store`.
@@ -103,7 +106,6 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [x] **70.** **Audit History Dashboard:** Record every deletion in an append-only JSON/SQLite "History" tab so users can see exactly what was removed and when.
 - [x] **79.** **Session Cleanup Tracking:** Add a "Last Ran" timestamp enforced via cryptographic signing to prevent tampering with "System Health" scores.
 - [x] **120.** **System Hardware Monitoring:** Track real-time network up/down velocities, thermal temperatures, and exact CPU consumption per localized binary process (inspired by `Sensei`).
-*Historical preservation of implemented milestones.*
 - [x] **121.** **[DONE] Linux Debugging and Build Fix:** Fixed Svelte 5 `<slot>` compilation errors, resolved `lucide-svelte` Github export changes, cleaned up TS errors in `vite.config.js`, and safely bypassed `sudo::escalate_if_needed()` for unblocked Tauri local dev server execution on Linux.
 - [x] **81.** **Cargo Clippy Pedantic:** Enforce `#![warn(clippy::pedantic)]` and `#![warn(clippy::unwrap_used)]` on the Rust codebase and fix the ~10 violations present.
 - [x] **83.** **Unit Tests (Rust):** Create `#[cfg(test)]` modules for `get_directory_size` and `human_readable_size` (testing bounds and edge cases).
