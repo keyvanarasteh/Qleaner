@@ -2,12 +2,11 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{
     path::{Path, PathBuf},
-    process::Command,
     sync::{Mutex, OnceLock},
 };
-use sysinfo::{Disks, Networks, System};
+use sysinfo::{Disks, System};
 use ignore::WalkBuilder;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::fs;
 
 // ============================================================================
