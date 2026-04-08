@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { cleanerStore } from '$lib/stores/cleaner.svelte';
 	import NumberFlow from '@number-flow/svelte';
-	import { Dialog } from 'bits-ui';
+	import { Dialog, DropdownMenu } from 'bits-ui';
 	import { fade, fly } from 'svelte/transition';
 	import { 
 		HardDrive, 
@@ -13,7 +13,12 @@
 		ShieldCheck,
 		AlertTriangle,
 		ArrowDownWideNarrow,
-		ArrowUpNarrowWide
+		ArrowUpNarrowWide,
+		MoreHorizontal,
+		FolderOpen,
+		EyeOff,
+		Info,
+		XOctagon
 	} from 'lucide-svelte';
 	
 	let totalSelectedSize = $derived(
@@ -183,6 +188,13 @@
 				<p class="text-neutral-400 text-sm max-w-md truncate">
 					{cleanerStore.progress?.current_location || 'Initializing...'}
 				</p>
+				<button 
+					class="mt-8 border border-red-500/20 text-red-500 hover:bg-red-500/10 px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+					onclick={() => cleanerStore.abortScan()}
+				>
+					<XOctagon size={18} />
+					Abort Operation
+				</button>
 			</div>
 		{:else if cleanerStore.results.length > 0}
 			<div class="flex items-center justify-between mt-4">
@@ -222,6 +234,7 @@
 								<th class="px-6 py-4 font-medium text-neutral-400 cursor-pointer hover:text-foreground transition-colors group select-none text-right" onclick={() => toggleSort('size')}>
 									<div class="flex items-center justify-end gap-2">Size {#if sortKey === 'size'} <span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={14}/>{:else}<ArrowDownWideNarrow size={14}/>{/if}</span> {/if}</div>
 								</th>
+								<th class="px-6 py-4 w-12 text-center text-neutral-400 font-medium"></th>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-border">
@@ -244,6 +257,25 @@
 										</td>
 										<td class="px-6 py-4 text-neutral-400">{item.category}</td>
 										<td class="px-6 py-4 text-right font-medium text-foreground">{item.size_human}</td>
+										<td class="px-6 py-4 text-right">
+											<DropdownMenu.Root>
+												<DropdownMenu.Trigger class="p-2 hover:bg-neutral-800 rounded-md transition-colors text-neutral-400 hover:text-foreground">
+													<MoreHorizontal size={16} />
+												</DropdownMenu.Trigger>
+												<DropdownMenu.Content class="w-48 bg-card border border-border rounded-xl shadow-xl py-1 z-50 overflow-hidden">
+													<DropdownMenu.Item class="px-3 py-2 text-sm text-neutral-300 hover:bg-primary/20 hover:text-primary cursor-pointer flex items-center gap-2 outline-none transition-colors" onclick={() => cleanerStore.openFolder(item.path)}>
+														<FolderOpen size={14} /> Open Location
+													</DropdownMenu.Item>
+													<DropdownMenu.Item class="px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-foreground cursor-pointer flex items-center gap-2 outline-none transition-colors" onclick={() => cleanerStore.ignoreItem(item.id)}>
+														<EyeOff size={14} /> Add to Ignore List
+													</DropdownMenu.Item>
+													<DropdownMenu.Separator class="h-px bg-border my-1" />
+													<DropdownMenu.Item class="px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-foreground cursor-pointer flex items-center gap-2 outline-none transition-colors">
+														<Info size={14} /> View Properties
+													</DropdownMenu.Item>
+												</DropdownMenu.Content>
+											</DropdownMenu.Root>
+										</td>
 									</tr>
 								{/if}
 							{/each}

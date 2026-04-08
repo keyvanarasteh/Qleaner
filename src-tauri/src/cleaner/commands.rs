@@ -92,8 +92,9 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
                     *cached_size
                 } else {
                     let path_clone = path.clone();
+                    let token_clone = token.clone();
                     let computed_size = tokio::task::spawn_blocking(move || {
-                        get_directory_size(&path_clone)
+                        get_directory_size(&path_clone, token_clone)
                     }).await.unwrap_or(0);
                     
                     local_cache_updates.insert(loc.path.clone(), computed_size);
@@ -150,6 +151,18 @@ pub async fn clean_items(
     dry_run: Option<bool>,
     state: State<'_, CleanerState>,
 ) -> Result<CleanResponse, CleanerError> {
+    let mut sys = sysinfo::System::new_all();
+    sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+
+    let mut is_chrome_running = false;
+    let mut is_firefox_running = false;
+
+    for process in sys.processes().values() {
+        let name = process.name().to_string_lossy().to_lowercase();
+        if name.contains("chrome") { is_chrome_running = true; }
+        if name.contains("firefox") { is_firefox_running = true; }
+    }
+
     let is_dry_run = dry_run.unwrap_or(false);
     let results = state.scan_results.lock().await.clone();
     
@@ -159,6 +172,23 @@ pub async fn clean_items(
 
     for id in items {
         if let Some(loc) = results.iter().find(|l| l.id == id) {
+            let path_lower = loc.path.to_lowercase();
+            
+            if is_chrome_running && (path_lower.contains("google/chrome") || path_lower.contains("google\\chrome")) {
+                errors.push(format!("Cannot clean Chrome cache while process is running: {}", loc.path));
+                continue;
+            }
+            if is_firefox_running && (path_lower.contains("mozilla/firefox") || path_lower.contains("mozilla\\firefox")) {
+                errors.push(format!("Cannot clean Firefox cache while process is running: {}", loc.path));
+                continue;
+            }
+
+            #[cfg(not(feature = "dangerous-clean"))]
+            if path_lower.contains("system") || path_lower.contains("/var/root") || path_lower.contains("windows\\system") {
+                errors.push(format!("Access restricted. Recompile with dangerous-clean feature."));
+                continue;
+            }
+
             if loc.path.starts_with("docker://") {
                 if !is_dry_run {
                     perform_docker_clean(&loc.path).await;

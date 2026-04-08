@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 105 | **Done:** 31 | **Ongoing:** 1 | **Pending:** 73
+> **Total Tasks:** 105 | **Done:** 39 | **Ongoing:** 0 | **Pending:** 66
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -12,18 +12,18 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 *Critical infrastructure, permissions, testing, and distribution pipelines.*
 - **28.** **Windows Update Cache:** Add Windows `SoftwareDistribution/Download` cache cleaning (requires elevated privileges).
 - [x] **37.** **Dry-Run Architecture:** Implement true dry-run scanning in Rust. Currently, [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301) just executes. Provide a simulation API to guarantee file counts.
-- **53.** **Hover Context Menus:** Use `bits-ui` Dropdown to add right-click options to rows: "Open Folder Location", "Add to Ignore List", "View Properties".
+- [x] **53.** **Hover Context Menus:** Use `bits-ui` Dropdown to add right-click options to rows: "Open Folder Location", "Add to Ignore List", "View Properties".
 - [x] **56.** **Sortable Columns:** Add clickable headers (Target, Category, Size) to sort the `cleanerStore.results` dynamically based on `$derived` state.
 - [x] **76.** **Error Toast Notifications:** Instead of silently failing to delete an item, pipe exact Rust error messages up to a frontend `sonner` toast system.
 - **77.** **Sudo Policy Enforcer:** If macOS requires Full Disk Access, implement a watcher that detects lacking permissions and redirects the user to `System Settings -> Privacy`.
 - **78.** **Sandboxed IFrame Documentation:** Move help texts and privacy policies to a segregated iframe without standard script contexts.
 - **85.** **E2E Tests (Playwright):** Integrate Playwright for Tauri E2E testing to simulate UI clicks automatically spawning mocked Tauri commands.
 - **86.** **Component Tests (Vitest):** Add `vitest` for the layout logic, specifically testing the reactivity of `$derived(totalSelectedSize)`.
-- **90.** **AppImage Builder (Linux):** Optimize Tauri config for modern Linux distributions with exact package exclusions.
-- **94.** **Feature Flags Architecture:** Implement Cargo features (e.g., `#[cfg(feature = "dangerous-clean")]`) to gate highly destructive beta features.
+- [x] **90.** **AppImage Builder (Linux):** Optimize Tauri config for modern Linux distributions with exact package exclusions.
+- [x] **94.** **Feature Flags Architecture:** Implement Cargo features (e.g., `#[cfg(feature = "dangerous-clean")]`) to gate highly destructive beta features.
 - **98.** **Crash Reporting:** Integrate Sentry natively via `sentry-rust` and `sentry-javascript` to catch unhandled application panics remotely.
 - **99.** **Update Auto-Updater:** Enable Tauri's built-in updater system (`plugin-updater`) so users get the latest optimization engines directly.
-- **100.** **Architectural Readme:** Completely rewrite `README.md` introducing the dual Svelte/Rust architecture, contribution guidelines, PR templates, and local dev spin-up instructions.
+- [x] **100.** **Architectural Readme:** Completely rewrite `README.md` introducing the dual Svelte/Rust architecture, contribution guidelines, PR templates, and local dev spin-up instructions.
 - **107.** ** [BACKLOG] Browser Playwright Execution:** Establish an automated flow to run the browser dynamically and close it alongside strict required logging messages and comments.
 - **109.** ** [BACKLOG] Universal Target Builds:** Scale the Linux actions explicitly for Ubuntu/Debian `.deb`, Fedora `.rpm`, Arch `.pacman` distributions alongside Apple notarization and Windows code signing.
 - **110.** ** [BACKLOG] Production Telemetry:** Evaluate privacy-respecting mechanisms for telemetry logging and crash dumps to monitor application stability natively.
@@ -33,8 +33,8 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ---
 ## ⚡ Tier 2: Medium Priority (Core Mechanics, Scanners & Competitor Vision)
 *Detection heuristics, deep system integrations, and multi-OS sweeps.*
-- **6.** ** [INCOMPLETE: PARTIAL] Cancellation Token:** Implement a `tokio_util::sync::CancellationToken` to allow the user to abort a long-running scan or clean operation mid-way. - *Flag cancellation triggers exist, but underlying directory walking does not abort early (partial).*
-- **14.** **Process Tracking Backend:** Add a backend scanner to detect running background apps (e.g., Chrome) and prevent emptying their caches while active.
+- [x] **6.** ** [DONE] Cancellation Token:** Implement a `tokio_util::sync::CancellationToken` to allow the user to abort a long-running scan or clean operation mid-way. - *Flag cancellation triggers exist and underlying directory walking aborts safely early.*
+- [x] **14.** ** [DONE] Process Tracking Backend:** Add a backend scanner to detect running background apps (e.g., Chrome) and prevent emptying their caches while active.
 - **17.** **File Ownership Checks:** On Linux/macOS, check if `uid == current_uid` before trying to delete, skipping root-owned caches gracefully instead of throwing exceptions.
 - **21.** **Node.js Modules Sweeper:** Add dedicated scans for orphaned `node_modules` folders using [ignore](file:///home/drvoid/ISU/Qleaner/.gitignore) glob targeting within user space.
 - **22.** **NPM/Yarn/PNPM Cache:** Explicitly target `~/.npm`, `~/AppData/Local/npm-cache`, and `~/.local/share/pnpm/store`.

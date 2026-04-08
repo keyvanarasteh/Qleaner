@@ -1,5 +1,6 @@
 use std::path::Path;
 use ignore::WalkBuilder;
+use tokio_util::sync::CancellationToken;
 
 #[allow(clippy::cast_precision_loss)]
 pub fn human_readable_size(bytes: u64) -> String {
@@ -19,26 +20,31 @@ pub fn human_readable_size(bytes: u64) -> String {
     }
 }
 
-pub fn get_directory_size(path: &Path) -> u64 {
-    let total_size = std::sync::atomic::AtomicU64::new(0);
+pub fn get_directory_size(path: &Path, token: CancellationToken) -> u64 {
+    let total_size = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
     WalkBuilder::new(path)
         .standard_filters(false)
         .follow_links(false) // Task 16: Symlink Safeties
         .threads(std::thread::available_parallelism().map(std::num::NonZero::get).unwrap_or(4))
         .build_parallel()
         .run(|| {
-            Box::new(|result| {
+            let thread_token = token.clone();
+            let ts_clone = total_size.clone();
+            Box::new(move |result| {
+                if thread_token.is_cancelled() {
+                    return ignore::WalkState::Quit;
+                }
                 if let Ok(entry) = result {
                     if let Ok(metadata) = std::fs::symlink_metadata(entry.path()) {
                         if metadata.is_file() {
-                            total_size.fetch_add(metadata.len(), std::sync::atomic::Ordering::Relaxed);
+                            ts_clone.fetch_add(metadata.len(), std::sync::atomic::Ordering::Relaxed);
                         }
                     }
                 }
                 ignore::WalkState::Continue
             })
         });
-    total_size.into_inner()
+    total_size.load(std::sync::atomic::Ordering::Relaxed)
 }
 
 #[cfg(test)]

@@ -54,7 +54,7 @@ pub async fn execute() {
             } else {
                 let path = PathBuf::from(&loc.path);
                 tokio::task::spawn_blocking(move || {
-                    get_directory_size(&path)
+                    get_directory_size(&path, tokio_util::sync::CancellationToken::new())
                 }).await.unwrap_or(0)
             };
             

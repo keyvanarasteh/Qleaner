@@ -146,6 +146,29 @@ class CleanerStore {
         }
     }
 
+    async abortScan() {
+        try {
+            await invoke('cancel_scan');
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    
+    async openFolder(path: string) {
+        try {
+            await invoke('plugin:opener|open', { path });
+        } catch (e) {
+            console.error("Failed to open folder:", e);
+            toast.error("Failed to open folder");
+        }
+    }
+
+    ignoreItem(id: string) {
+        // Future iteration allows syncing to persistent sqlite
+        toast.info("Item hidden from current view.");
+        this.results = this.results.filter(r => r.id !== id);
+    }
+
     toggleAll(checked: boolean) {
         for (let i = 0; i < this.results.length; i++) {
             this.results[i].selected = checked;

@@ -256,7 +256,7 @@ pub fn detect_container_orphans(installed_ids: &HashSet<String>) -> Vec<Leftover
                     let container_id = container_name.to_lowercase();
 
                     if !installed_ids.contains(&container_id) {
-                        let size = get_directory_size(&entry.path());
+                        let size = get_directory_size(&entry.path(), tokio_util::sync::CancellationToken::new());
                         if size > 0 {
                             orphans.push(LeftoverItem {
                                 id: format!("container_{container_name}"),
@@ -306,7 +306,7 @@ pub fn detect_group_container_orphans(installed_ids: &HashSet<String>) -> Vec<Le
                     });
 
                     if is_orphan {
-                        let size = get_directory_size(&entry.path());
+                        let size = get_directory_size(&entry.path(), tokio_util::sync::CancellationToken::new());
                         if size > 0 {
                             orphans.push(LeftoverItem {
                                 id: format!("group_container_{container_name}"),
@@ -456,7 +456,7 @@ pub fn detect_app_support_orphans(
                     });
 
                     if is_orphan {
-                        let size = get_directory_size(&entry.path());
+                        let size = get_directory_size(&entry.path(), tokio_util::sync::CancellationToken::new());
                         if size > 1024 {
                             // > 1KB
                             orphans.push(LeftoverItem {
@@ -583,7 +583,7 @@ pub fn detect_cache_orphans(
                     });
 
                     if is_orphan {
-                        let size = get_directory_size(&entry.path());
+                        let size = get_directory_size(&entry.path(), tokio_util::sync::CancellationToken::new());
                         if size > 10240 {
                             // > 10KB
                             orphans.push(LeftoverItem {
