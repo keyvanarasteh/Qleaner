@@ -153,17 +153,14 @@
 			
 			{#if cleanerStore.results.filter(r => r.size > 0 && r.exists).length > 0}
 				<div class="w-full relative z-10 pt-4 border-t border-border/50 flex-1 flex flex-col justify-end">
-					<p class="text-sm font-medium text-neutral-400 mb-4 px-1">Segmented Optimization Payloads</p>
+					<p class="text-sm font-medium text-neutral-400 mb-4 px-1">Massive Folder Path Telemetry</p>
 					<TreemapWidget 
 						items={
-							Object.entries(
-								cleanerStore.results
-									.filter(r => r.size > 0 && r.exists)
-									.reduce((acc, curr) => { 
-										acc[curr.category] = (acc[curr.category] || 0) + curr.size; 
-										return acc; 
-									}, {} as Record<string, number>)
-							).map(([name, size]) => ({ name, category: name, size })).sort((a,b) => b.size - a.size)
+							cleanerStore.results
+								.filter(r => r.size > 0 && r.exists)
+								.sort((a,b) => b.size - a.size)
+								.slice(0, 40) // Target top 40 massive folder paths mapping directly
+								.map(r => ({ name: r.name, category: r.category, size: r.size }))
 						} 
 					/>
 				</div>

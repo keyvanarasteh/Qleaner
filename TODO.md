@@ -56,7 +56,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ## 🎨 Tier 3: Low Priority (UI/UX, Polish & Minor Tooling)
 *Interface enhancements, quality of life, and visual feedback metrics.*
 - [ ] **20.** **Tauri Plugin System:** Move the core cleaner logic out of [main.rs](file:///home/drvoid/ISU/Qleaner/src-tauri/src/main.rs)/[cleaner.rs](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs) into a structured Tauri Plugin (`tauri-plugin-qleaner-core`) for strict modularity.
-- [ ] **42.** **Virtual Listicles:** The table renders every row. If thousands of junk locations are found, the DOM will lag. Implement `svelte-virtual-list`.
+- [x] **42.** **Virtual Listicles:** The table renders every row. If thousands of junk locations are found, the DOM will lag. Implement `svelte-virtual-list`.
 - [ ] **82.** **ESLint & Prettier Strictness:** The Svelte app lacks the `@typescript-eslint/recommended-requiring-type-checking` rule set.
 - [ ] **88.** **Release Bump Pipeline:** Create a script (via `release-plz` or `standard-version`) to automate bumping version parity between `package.json` and `Cargo.toml`.
 - [ ] **92.** **Vite Bundle Optimization:** Optimize `vite.config.js` to split `lucide-svelte` and `bits-ui` chunks to shrink the V8 snapshot load time.
@@ -64,7 +64,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [ ] **95.** **Rust Format Checks:** Automate `cargo fmt --check` in the pre-commit hook via husky.
 - [ ] **96.** **Git LFS for Icons:** Store the `app-icon-real.png` (250KB) and other high-res assets in Git LFS instead of tracking raw blobs.
 - [ ] **108.** ** [BACKLOG] `fix-qicro-debugger` Repository Sync:** Review and merge any necessary commits strictly from the `fix-qicro-debugger` branch into master, culling deprecated segments.
-- [ ] **112.** **Disk Usage Visualization (Viz):** Implement high-performance Rust-backed Treemaps or Sunburst charts to visually map largest folders directly inside the Svelte UI (inspired by `DaisyDisk` / `WinDirStat`).
+- [x] **112.** **Disk Usage Visualization (Viz):** Implement high-performance Rust-backed Treemaps or Sunburst charts to visually map largest folders directly inside the Svelte UI (inspired by `DaisyDisk` / `WinDirStat`).
 
 ---
 ## ✅ Completed Tasks (Archive)
