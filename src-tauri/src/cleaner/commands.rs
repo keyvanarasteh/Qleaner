@@ -327,6 +327,12 @@ pub async fn clean_items(
                         continue;
                     }
                     
+                    if let Ok(meta) = entry.metadata().await {
+                        if !is_owned_by_current_user(&meta) {
+                            continue;
+                        }
+                    }
+
                     if file_type.is_symlink() {
                         continue;
                     }

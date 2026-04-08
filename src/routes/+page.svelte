@@ -66,6 +66,13 @@
 		return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 	}
 
+	function truncatePath(path: string, maxLength: number = 60) {
+		if (path.length <= maxLength) return path;
+		const start = path.slice(0, Math.floor(maxLength / 2) - 3);
+		const end = path.slice(-Math.floor(maxLength / 2) + 2);
+		return `${start}...${end}`;
+	}
+
 	async function handleClean() {
 		const selectedIds = cleanerStore.results.filter(r => r.selected).map(r => r.id);
 		if (selectedIds.length > 0) {
@@ -294,7 +301,7 @@
 										<td class="px-6 py-4">
 											<div class="flex flex-col">
 												<span class="font-medium text-foreground">{item.name}</span>
-												<span class="text-neutral-500 text-xs truncate max-w-sm" title={item.path}>{item.path}</span>
+												<span class="text-neutral-500 text-xs w-max" title={item.path}>{truncatePath(item.path)}</span>
 											</div>
 										</td>
 										<td class="px-6 py-4">
