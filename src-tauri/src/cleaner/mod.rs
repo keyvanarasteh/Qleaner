@@ -6,4 +6,3 @@ pub mod commands;
 
 pub use commands::*;
 pub use models::CleanerState;
-pub use error::CleanerError;

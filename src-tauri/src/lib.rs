@@ -1,3 +1,7 @@
+#![warn(clippy::pedantic)]
+#![warn(clippy::unwrap_used)]
+#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc, clippy::module_name_repetitions)]
+
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -18,7 +22,7 @@ pub fn run() {
             let menu = Menu::with_items(app, &[&open_i, &clean_i, &quit_i])?;
 
             let _tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(app.default_window_icon().expect("Default window icon missing").clone())
                 .menu(&menu)
                 .on_menu_event(|app: &tauri::AppHandle, event| match event.id.as_ref() {
                     "quit" => {

@@ -1,6 +1,7 @@
 use std::path::Path;
 use ignore::WalkBuilder;
 
+#[allow(clippy::cast_precision_loss)]
 pub fn human_readable_size(bytes: u64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB", "PB"];
     let mut size = bytes as f64;
@@ -23,7 +24,7 @@ pub fn get_directory_size(path: &Path) -> u64 {
     WalkBuilder::new(path)
         .standard_filters(false)
         .follow_links(false) // Task 16: Symlink Safeties
-        .threads(std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4))
+        .threads(std::thread::available_parallelism().map(std::num::NonZero::get).unwrap_or(4))
         .build_parallel()
         .run(|| {
             Box::new(|result| {
@@ -52,10 +53,10 @@ mod tests {
         assert_eq!(human_readable_size(1023), "1023 B");
         assert_eq!(human_readable_size(1024), "1.0 KB");
         assert_eq!(human_readable_size(1536), "1.5 KB");
-        assert_eq!(human_readable_size(1048576), "1.0 MB");
-        assert_eq!(human_readable_size(1073741824), "1.0 GB");
-        assert_eq!(human_readable_size(1099511627776), "1.0 TB");
-        assert_eq!(human_readable_size(1125899906842624), "1.0 PB");
+        assert_eq!(human_readable_size(1_048_576), "1.0 MB");
+        assert_eq!(human_readable_size(1_073_741_824), "1.0 GB");
+        assert_eq!(human_readable_size(1_099_511_627_776), "1.0 TB");
+        assert_eq!(human_readable_size(1_125_899_906_842_624), "1.0 PB");
 
         // Edge case: Extremely large numbers don't exceed the units boundary
         assert_eq!(human_readable_size(std::u64::MAX), "16384.0 PB");

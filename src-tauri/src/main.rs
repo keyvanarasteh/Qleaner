@@ -5,7 +5,7 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--cli") {
         sudo::escalate_if_needed().expect("Failed to escalate privileges");
-        let rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
         rt.block_on(async {
             tauri_app_lib::cli::execute().await;
         });

@@ -194,9 +194,10 @@ pub async fn clean_items(items: Vec<String>, state: State<'_, CleanerState>) -> 
 }
 
 #[tauri::command]
+#[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
 pub fn get_system_stats() -> SystemStats {
-    let mut sys = SYSTEM.get().expect("SYSTEM not initialized").lock().unwrap_or_else(|e| e.into_inner());
-    let mut disks = DISKS.get().expect("DISKS not initialized").lock().unwrap_or_else(|e| e.into_inner());
+    let mut sys = SYSTEM.get().expect("SYSTEM not initialized").lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut disks = DISKS.get().expect("DISKS not initialized").lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     
     sys.refresh_cpu_usage();
     sys.refresh_memory();
@@ -376,7 +377,7 @@ pub async fn clean_leftovers(items: Vec<String>, state: State<'_, CleanerState>)
 }
 
 pub(crate) async fn fetch_docker_size(uri: &str) -> Option<u64> {
-    if let Ok(output) = tokio::process::Command::new("docker").args(&["system", "df", "--format", "{{json .}}"]).output().await {
+    if let Ok(output) = tokio::process::Command::new("docker").args(["system", "df", "--format", "{{json .}}"]).output().await {
         if let Ok(stdout) = String::from_utf8(output.stdout) {
             let target_type = match uri {
                 "docker://build_cache" => "Build Cache",
@@ -390,7 +391,7 @@ pub(crate) async fn fetch_docker_size(uri: &str) -> Option<u64> {
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
                     if let Some(t) = json.get("Type").and_then(|v| v.as_str()) {
                         if t == target_type {
-                            let reclaimable = json.get("ReclaimableSize").and_then(|v| v.as_u64()).unwrap_or(0);
+                            let reclaimable = json.get("ReclaimableSize").and_then(serde_json::Value::as_u64).unwrap_or(0);
                             return Some(reclaimable);
                         }
                     }
@@ -404,16 +405,16 @@ pub(crate) async fn fetch_docker_size(uri: &str) -> Option<u64> {
 pub(crate) async fn perform_docker_clean(uri: &str) {
     match uri {
         "docker://build_cache" => {
-            let _ = tokio::process::Command::new("docker").args(&["builder", "prune", "-a", "-f"]).output().await;
+            let _ = tokio::process::Command::new("docker").args(["builder", "prune", "-a", "-f"]).output().await;
         }
         "docker://dangling_images" => {
-            let _ = tokio::process::Command::new("docker").args(&["image", "prune", "-f"]).output().await;
+            let _ = tokio::process::Command::new("docker").args(["image", "prune", "-f"]).output().await;
         }
         "docker://stopped_containers" => {
-            let _ = tokio::process::Command::new("docker").args(&["container", "prune", "-f"]).output().await;
+            let _ = tokio::process::Command::new("docker").args(["container", "prune", "-f"]).output().await;
         }
         "docker://volumes" => {
-            let _ = tokio::process::Command::new("docker").args(&["volume", "prune", "-f"]).output().await;
+            let _ = tokio::process::Command::new("docker").args(["volume", "prune", "-f"]).output().await;
         }
         _ => {}
     }

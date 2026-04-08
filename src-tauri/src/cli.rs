@@ -85,7 +85,7 @@ pub async fn execute() {
     let agents = detect_launch_agent_orphans(&installed, None);
     let caches = detect_cache_orphans(&installed, None);
     
-    let all_orphans = vec![containers, groups, prefs, support, agents, caches].concat();
+    let all_orphans = [containers, groups, prefs, support, agents, caches].concat();
     for loc in all_orphans {
         println!("[FOUND] ORPHAN: {} ({}) - {}", loc.name, loc.size_human, loc.path);
         total_size += loc.size;
@@ -100,7 +100,7 @@ pub async fn execute() {
     println!("\n=================================================");
     println!(" 🎉 Qleaner Engine Passed Execution Successfully ");
     println!("=================================================");
-    println!("Total Artifacts Found: {}", found_count);
+    println!("Total Artifacts Found: {found_count}");
     println!("Total Storage Bound:   {}", human_readable_size(total_size));
     if args.clean {
         println!(">> Status: The reported storage has been completely recovered!");

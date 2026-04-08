@@ -156,7 +156,7 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
 
 pub fn parse_plist_bundle_id(plist_path: &Path) -> Option<String> {
     Command::new("defaults")
-        .args(&["read", plist_path.to_str()?, "CFBundleIdentifier"])
+        .args(["read", plist_path.to_str()?, "CFBundleIdentifier"])
         .output()
         .ok()
         .and_then(|output| {
@@ -179,10 +179,10 @@ pub fn infer_app_name(bundle_id: &str) -> String {
     if let Some(last_part) = parts.last() {
         let mut name = last_part.to_string();
         // Convert camelCase to spaces
-        let re = Regex::new(r"([a-z])([A-Z])").unwrap();
+        let re = Regex::new(r"([a-z])([A-Z])").expect("Failed to compile valid regex mapping");
         name = re.replace_all(&name, "$1 $2").to_string();
         // Convert dashes/underscores to spaces
-        name = name.replace('-', " ").replace('_', " ");
+        name = name.replace(['-', '_'], " ");
         // Capitalize words
         name.split_whitespace()
             .map(|word| {
@@ -259,7 +259,7 @@ pub fn detect_container_orphans(installed_ids: &HashSet<String>) -> Vec<Leftover
                         let size = get_directory_size(&entry.path());
                         if size > 0 {
                             orphans.push(LeftoverItem {
-                                id: format!("container_{}", container_name),
+                                id: format!("container_{container_name}"),
                                 path: entry.path().to_string_lossy().to_string(),
                                 name: infer_app_name(&container_name),
                                 bundle_id: container_name.clone(),
@@ -309,7 +309,7 @@ pub fn detect_group_container_orphans(installed_ids: &HashSet<String>) -> Vec<Le
                         let size = get_directory_size(&entry.path());
                         if size > 0 {
                             orphans.push(LeftoverItem {
-                                id: format!("group_container_{}", container_name),
+                                id: format!("group_container_{container_name}"),
                                 path: entry.path().to_string_lossy().to_string(),
                                 name: infer_app_name(&container_name),
                                 bundle_id: container_name.clone(),
@@ -379,7 +379,7 @@ pub fn detect_preference_orphans(
                             let size = metadata.len();
                             if size > 0 {
                                 orphans.push(LeftoverItem {
-                                    id: format!("pref_{}", pref_name),
+                                    id: format!("pref_{pref_name}"),
                                     path: entry.path().to_string_lossy().to_string(),
                                     name: infer_app_name(&pref_name),
                                     bundle_id: pref_name.clone(),
@@ -460,14 +460,14 @@ pub fn detect_app_support_orphans(
                         if size > 1024 {
                             // > 1KB
                             orphans.push(LeftoverItem {
-                                id: format!("appsupport_{}", folder_name),
+                                id: format!("appsupport_{folder_name}"),
                                 path: entry.path().to_string_lossy().to_string(),
                                 name: folder_name.clone(),
-                                bundle_id: format!("*.{}", folder_name),
+                                bundle_id: format!("*.{folder_name}"),
                                 detection_source: "app_support_scan".to_string(),
                                 category: "Application Support".to_string(),
                                 confidence: "medium".to_string(),
-                                hint: format!("Application Support folder for '{}'. No matching app installed.", folder_name),
+                                hint: format!("Application Support folder for '{folder_name}'. No matching app installed."),
                                 size,
                                 size_human: human_readable_size(size),
                                 selected: true,
@@ -522,7 +522,7 @@ pub fn detect_launch_agent_orphans(
                         if is_orphan {
                             if let Ok(metadata) = entry.metadata() {
                                 orphans.push(LeftoverItem {
-                                    id: format!("launchagent_{}", plist_name),
+                                    id: format!("launchagent_{plist_name}"),
                                     path: entry.path().to_string_lossy().to_string(),
                                     name: infer_app_name(&plist_name),
                                     bundle_id: plist_name.clone(),
@@ -587,7 +587,7 @@ pub fn detect_cache_orphans(
                         if size > 10240 {
                             // > 10KB
                             orphans.push(LeftoverItem {
-                                id: format!("cache_{}", folder_name),
+                                id: format!("cache_{folder_name}"),
                                 path: entry.path().to_string_lossy().to_string(),
                                 name: infer_app_name(&folder_name),
                                 bundle_id: folder_name.clone(),
