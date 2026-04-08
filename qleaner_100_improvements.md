@@ -123,3 +123,35 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 98. **Crash Reporting:** Integrate Sentry natively via `sentry-rust` and `sentry-javascript` to catch unhandled application panics remotely.
 99. **Update Auto-Updater:** Enable Tauri's built-in updater system (`plugin-updater`) so users get the latest optimization engines directly.
 100. **Architectural Readme:** Completely rewrite `README.md` introducing the dual Svelte/Rust architecture, contribution guidelines, PR templates, and local dev spin-up instructions.
+
+---
+
+## Part 6: User Implemented Tasks & Backlog (101-110)
+*This section tracks specific implementation details requested by the user and their completion state.*
+
+101. ** [DONE] Q-MCP Heuristics Sync:** Migrated advanced macOS formatting tools and sandbox container analysis functions directly from `Q-MCP/src-tauri/src/cleaner.rs` into our new modular OOP backend.
+102. ** [DONE] Open Source Polish:** Generated full `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, MIT/Apache2 dual licenses, and Linux `snapcraft.yaml` distribution settings.
+103. ** [DONE] Github Actions Workflows:** Configured deep CI/CD pipelines inside `.github/workflows/release.yml` mapping automated cross-platform deployments (Windows `.exe`, macOS `.dmg` Silicon/Intel, Linux `.AppImage`).
+104. ** [DONE] Kadir's UX PRs:** Integrated beautiful UX aesthetics, hover semantics, and Bento grids inspired by Kadir's Qapri implementations.
+105. ** [DONE] System Tray Menu:** Activated Tauri native tray daemon featuring background running capability and instant `Open` / `Clean Now` controls.
+106. ** [DONE] Frontend Feature Exhaustion:** Implemented `paraglide-sveltekit` i18n, custom layout OS themes, and full SvelteKit paths for `/feedback`, `/donate`, and `/about`.
+107. ** [BACKLOG] Browser Playwright Execution:** Establish an automated flow to run the browser dynamically and close it alongside strict required logging messages and comments.
+108. ** [BACKLOG] `fix-qicro-debugger` Repository Sync:** Review and merge any necessary commits strictly from the `fix-qicro-debugger` branch into master, culling deprecated segments.
+109. ** [BACKLOG] Universal Target Builds:** Scale the Linux actions explicitly for Ubuntu/Debian `.deb`, Fedora `.rpm`, Arch `.pacman` distributions alongside Apple notarization and Windows code signing.
+110. ** [BACKLOG] Production Telemetry:** Evaluate privacy-respecting mechanisms for telemetry logging and crash dumps to monitor application stability natively.
+
+---
+
+## Part 7: Competitor Vision Roadmap (111-120)
+*Based on the competitive landscape observed in `docs/vison.html` mapping 30 top-tier disk utilities (e.g., CleanMyMac, BleachBit, DaisyDisk).*
+
+111. **CLI Architecture Support:** Develop a completely headless **Command-Line Interface (CLI)** version of Qleaner strictly for scriptable DevOps deployment, Linux servers, and TUI power users (inspired by `ncdu` / `TreeSize`).
+112. **Disk Usage Visualization (Viz):** Implement high-performance Rust-backed Treemaps or Sunburst charts to visually map largest folders directly inside the Svelte UI (inspired by `DaisyDisk` / `WinDirStat`).
+113. **Checksum Duplicate Finder (Dupes):** Integrate an `xxHash` high-speed engine to locate duplicated photos, archives, and binaries cross-system, yielding safe deletion arrays (inspired by `dupeGuru` / `Gemini 2`).
+114. **Startup Manager (Start):** Hook into OS background agents (LaunchDaemons on Mac, registry `Run` keys on Win, Systemd on Linux) to toggle bloatware auto-starting (inspired by `Stacer` / `CCleaner`).
+115. **System Native App Uninstaller (Uninst):** Intercept standard `.app` or registry uninstalls scanning for deep orphan plist caches globally to secure total application removals (inspired by `App Cleaner & Uninstaller`).
+116. **Privacy & Browser Exploitation Sweeper (Privacy):** Go beyond standard `.cache` by aggressively locating tracking cookies, form histories, DOM storages, and telemetry residues across Edge/Chrome/Firefox (inspired by `BleachBit`).
+117. **File Shredder (Shred):** Implement DoD 5220.22-M compliant multi-pass secure erasures to guarantee sensitive data files cannot be recovered via standard forensics (inspired by `CleanMyMac`).
+118. **Malware & Security Analysis (Malware):** Add baseline YARA scanning or static malware signature detection against cache payloads looking for common miners or rogue binaries (inspired by `Advanced SystemCare`).
+119. **OS Registry Repair (Reg):** Introduce distinct Windows registry scanning looking for invalid paths, ghost uninstaller references, and rogue COM keys (inspired by `Wise / Glary Utilities`).
+120. **System Hardware Monitoring:** Track real-time network up/down velocities, thermal temperatures, and exact CPU consumption per localized binary process (inspired by `Sensei`).
