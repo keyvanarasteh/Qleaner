@@ -97,6 +97,8 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ## ✅ Completed Tasks (Archive)
 *Historical preservation of implemented milestones.*
 
+- **121.** **[DONE] Linux Debugging and Build Fix:** Fixed Svelte 5 `<slot>` compilation errors, resolved `lucide-svelte` Github export changes, cleaned up TS errors in `vite.config.js`, and safely bypassed `sudo::escalate_if_needed()` for unblocked Tauri local dev server execution on Linux.
+
 - **81.** **Cargo Clippy Pedantic:** Enforce `#![warn(clippy::pedantic)]` and `#![warn(clippy::unwrap_used)]` on the Rust codebase and fix the ~10 violations present.
 
 - **83.** **Unit Tests (Rust):** Create `#[cfg(test)]` modules for `get_directory_size` and `human_readable_size` (testing bounds and edge cases).

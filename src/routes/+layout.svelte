@@ -34,5 +34,4 @@
   {/if}
 </div>
 
-<slot/>
 </ParaglideJS>

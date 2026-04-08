@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Info, Github } from 'lucide-svelte';
+  import { Info, Code } from 'lucide-svelte';
 </script>
 
 <div class="max-w-3xl mx-auto py-16 px-6">
@@ -35,7 +35,7 @@
 
     <div class="pt-6">
       <a href="https://github.com/keyvanarasteh/Qleaner" target="_blank" class="inline-flex items-center gap-2 bg-foreground text-background px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition">
-        <Github size={20} /> View Source Code
+        <Code size={20} /> View Source Code
       </a>
     </div>
   </div>
