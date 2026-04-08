@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 109 | **Done:** 76 | **Ongoing:** 0 | **Pending:** 33
+> **Total Tasks:** 109 | **Done:** 79 | **Ongoing:** 0 | **Pending:** 30
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -43,7 +43,6 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [ ] **38.** **Configurable Ignoring:** Add a global `.qleanerignore` list to explicitly block directories from ever being scanned or listed.
 - [ ] **39.** **Dependency Uninstaller:** Identify orphaned applications (macOS `.app` leftover plists, Windows rogue regkeys).
 - [ ] **40.** **Duplicated Files (Dedup):** Implement a fast checksum-based (xxHash) duplicate file finder.
-- [ ] **58.** **Native OS Window Controls:** Add custom `titlebar` integration (via `<div data-tauri-drag-region>`) using Lucide icons for macOS/Windows custom decorators.
 - [ ] **62.** **Tauri Capabilities Locking:** Lock down `tauri.conf.json` explicitly allowing *only* the specific [clean_items](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#281-301), [start_scan](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs#217-275) commands. Deny wildcards.
 - [ ] **64.** **Browser State Wiping Alert:** Auto-cleaning browser caches logs users out of sites. Require an explicit warning/consent checkbox before wiping "Chrome/Firefox Data".
 - [ ] **66.** **Sensitive File Hashing:** Verify critical file hashes (like OS `hosts` or config binaries) before assuming something is a "Cache" based on name alone.
@@ -62,8 +61,6 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 *Interface enhancements, quality of life, and visual feedback metrics.*
 - [ ] **20.** **Tauri Plugin System:** Move the core cleaner logic out of [main.rs](file:///home/drvoid/ISU/Qleaner/src-tauri/src/main.rs)/[cleaner.rs](file:///home/drvoid/ISU/Qleaner/src-tauri/src/cleaner.rs) into a structured Tauri Plugin (`tauri-plugin-qleaner-core`) for strict modularity.
 - [ ] **42.** **Virtual Listicles:** The table renders every row. If thousands of junk locations are found, the DOM will lag. Implement `svelte-virtual-list`.
-- [ ] **55.** **Sticky Table Headers:** Ensure the `thead` uses `z-index` and `backdrop-blur` properly behind overflowing content inside a constrained wrapper.
-- [ ] **59.** **Keyboard Shortcuts:** Implement `svelte-window` keyboard listeners (e.g., `CMD+Enter` to start cleaning, `Esc` to cancel).
 - [ ] **82.** **ESLint & Prettier Strictness:** The Svelte app lacks the `@typescript-eslint/recommended-requiring-type-checking` rule set.
 - [ ] **88.** **Release Bump Pipeline:** Create a script (via `release-plz` or `standard-version`) to automate bumping version parity between `package.json` and `Cargo.toml`.
 - [ ] **92.** **Vite Bundle Optimization:** Optimize `vite.config.js` to split `lucide-svelte` and `bits-ui` chunks to shrink the V8 snapshot load time.
@@ -75,6 +72,9 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 
 ---
 ## ✅ Completed Tasks (Archive)
+- [x] **58.** **Native OS Window Controls:** Add custom `titlebar` integration (via `<div data-tauri-drag-region>`) using Lucide icons for macOS/Windows custom decorators.
+- [x] **55.** **Sticky Table Headers:** Ensure the `thead` uses `z-index` and `backdrop-blur` properly behind overflowing content inside a constrained wrapper.
+- [x] **59.** **Keyboard Shortcuts:** Implement `svelte-window` keyboard listeners (e.g., `CMD+Enter` to start cleaning, `Esc` to cancel).
 - [x] **54.** **Path Truncation Logic:** Very long paths currently use CSS truncate, which obscures the end of the path (the important part). Use JS/CSS to truncate the middle (e.g., `~/Library.../Cache`).
 - [x] **17.** **File Ownership Checks:** On Linux/macOS, check if `uid == current_uid` before trying to delete, skipping root-owned caches gracefully instead of throwing exceptions.
 - [x] **60.** **Accessibility (A11y):** Form checkboxes lack `aria-label` or `<label>` wrapping. Add strict strict accessibility tags to the data grid.
