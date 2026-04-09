@@ -41,17 +41,16 @@ cd "$PROJECT_ROOT"
 bun install >> "$LOG_FILE" 2>&1
 bun run build >> "$LOG_FILE" 2>&1
 
-cd "$TAURI_DIR"
 # If running on macOS, build natively. If on Linux, cross compilation via osxcross is complex, so we assume native mac or warn.
 if [[ "$OSTYPE" == "darwin"* ]]; then
     log "Native macOS detected. Building Tauri App..."
-    cargo tauri build --target universal-apple-darwin >> "$LOG_FILE" 2>&1
-    cp target/universal-apple-darwin/release/bundle/dmg/*.dmg "$OUTPUT_DIR/" 2>/dev/null || true
-    cp target/universal-apple-darwin/release/bundle/macos/*.app "$OUTPUT_DIR/" -r 2>/dev/null || true
+    bun run tauri build --target universal-apple-darwin >> "$LOG_FILE" 2>&1
+    cp src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg "$OUTPUT_DIR/" 2>/dev/null || true
+    cp src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app "$OUTPUT_DIR/" -r 2>/dev/null || true
 else
     log "${YELLOW}Warning:${NC} Building Mac target from a non-Mac host. Cargo may fail unless osxcross is configured."
-    cargo tauri build --target $PLATFORM >> "$LOG_FILE" 2>&1
-    cp target/$PLATFORM/release/bundle/dmg/*.dmg "$OUTPUT_DIR/" 2>/dev/null || true
+    bun run tauri build --target $PLATFORM >> "$LOG_FILE" 2>&1
+    cp src-tauri/target/$PLATFORM/release/bundle/dmg/*.dmg "$OUTPUT_DIR/" 2>/dev/null || true
 fi
 
 # Rename artifacts to include timestamp
