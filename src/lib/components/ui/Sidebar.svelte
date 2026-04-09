@@ -11,15 +11,17 @@
     Heart, 
     MessageSquare,
     Activity,
-    ScrollText
+    ScrollText,
+    BrainCircuit
   } from 'lucide-svelte';
 
   let currentPath = $derived(page.url.pathname);
 
-  type ValidRoute = '/' | '/rules' | '/schedules' | '/settings' | '/about' | '/donate' | '/feedback' | '/history';
+  type ValidRoute = '/' | '/rules' | '/schedules' | '/settings' | '/about' | '/donate' | '/feedback' | '/history' | '/heuristics';
 
   const mainNav = [
     { name: 'Dashboard', path: '/' as ValidRoute, icon: LayoutDashboard },
+    { name: 'Heuristics', path: '/heuristics' as ValidRoute, icon: BrainCircuit },
     { name: 'Rules', path: '/rules' as ValidRoute, icon: ShieldAlert },
     { name: 'Schedules', path: '/schedules' as ValidRoute, icon: CalendarClock },
     { name: 'Audit', path: '/history' as ValidRoute, icon: ScrollText },
