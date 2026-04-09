@@ -46,12 +46,12 @@
     {#each mainNav as item (item.name)}
       <a 
         href={resolve(item.path)}
-        class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 group relative {currentPath === item.path ? 'bg-primary/10 text-primary' : 'text-neutral-500 hover:text-foreground hover:bg-neutral-800/50'}"
+        class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 group relative {currentPath === item.path ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
         title={item.name}
       >
-        <item.icon size={22} class={currentPath === item.path ? 'text-primary' : 'text-neutral-500 group-hover:text-foreground transition-colors'} />
+        <item.icon size={22} class={currentPath === item.path ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground transition-colors'} />
         <!-- Tooltip generic fallback -->
-        <span class="absolute left-12 px-2 py-1 bg-neutral-800 text-foreground text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none z-50 whitespace-nowrap shadow-lg border border-border transition-opacity">
+        <span class="absolute left-12 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none z-50 whitespace-nowrap shadow-lg border border-border transition-opacity">
           {item.name}
         </span>
       </a>
@@ -62,11 +62,11 @@
     {#each bottomNav as item (item.name)}
       <a 
         href={resolve(item.path)}
-        class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 group relative {currentPath === item.path ? 'bg-primary/10 text-primary' : 'text-neutral-500 hover:text-foreground hover:bg-neutral-800/50'}"
+        class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 group relative {currentPath === item.path ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
         title={item.name}
       >
-        <item.icon size={20} class={currentPath === item.path ? 'text-primary' : 'text-neutral-500 group-hover:text-foreground transition-colors'} />
-        <span class="absolute left-12 px-2 py-1 bg-neutral-800 text-foreground text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none z-50 whitespace-nowrap shadow-lg border border-border transition-opacity">
+        <item.icon size={20} class={currentPath === item.path ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground transition-colors'} />
+        <span class="absolute left-12 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none z-50 whitespace-nowrap shadow-lg border border-border transition-opacity">
           {item.name}
         </span>
       </a>
@@ -75,15 +75,15 @@
     <!-- Theme Toggle -->
     <button 
       onclick={() => themeState.toggle()}
-      class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 group relative text-neutral-500 hover:text-foreground hover:bg-neutral-800/50 mt-2"
+      class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 group relative text-muted-foreground hover:text-foreground hover:bg-muted mt-2"
       aria-label="Toggle Theme"
     >
       {#if themeState.isDark}
-        <Sun size={20} class="text-neutral-500 group-hover:text-amber-400 transition-colors" />
+        <Sun size={20} class="text-muted-foreground group-hover:text-amber-400 transition-colors" />
       {:else}
-        <Moon size={20} class="text-neutral-500 group-hover:text-blue-400 transition-colors" />
+        <Moon size={20} class="text-muted-foreground group-hover:text-blue-400 transition-colors" />
       {/if}
-      <span class="absolute left-12 px-2 py-1 bg-neutral-800 text-foreground text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none z-50 whitespace-nowrap shadow-lg border border-border transition-opacity">
+      <span class="absolute left-12 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none z-50 whitespace-nowrap shadow-lg border border-border transition-opacity">
         Toggle Theme
       </span>
     </button>
