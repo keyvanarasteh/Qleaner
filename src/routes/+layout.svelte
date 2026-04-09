@@ -78,19 +78,6 @@
           </button>
         </div>
       {/if}
-      <!-- Floating Theme Toggle -->
-      <button 
-        class="absolute top-4 right-4 z-[100] p-1.5 rounded bg-transparent text-neutral-400 hover:text-foreground transition-all duration-300 pointer-events-auto"
-        onclick={() => themeState.toggle()}
-        aria-label="Toggle Theme"
-        title="Toggle Light/Dark Mode"
-      >
-        {#if themeState.isDark}
-          <Sun size={18} />
-        {:else}
-          <Moon size={18} />
-        {/if}
-      </button>
       
       <!-- Editor Zone -->
       <main class="flex-1 flex flex-col min-h-0 relative overflow-hidden">

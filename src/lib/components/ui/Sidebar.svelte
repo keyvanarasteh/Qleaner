@@ -11,8 +11,11 @@
     MessageSquare,
     ScrollText,
     BrainCircuit,
-    Activity
+    Activity,
+    Sun,
+    Moon
   } from 'lucide-svelte';
+  import { themeState } from '$lib/stores/theme.svelte';
 
   let currentPath = $derived(page.url.pathname);
 
@@ -68,6 +71,22 @@
         </span>
       </a>
     {/each}
+
+    <!-- Theme Toggle -->
+    <button 
+      onclick={() => themeState.toggle()}
+      class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 group relative text-neutral-500 hover:text-foreground hover:bg-neutral-800/50 mt-2"
+      aria-label="Toggle Theme"
+    >
+      {#if themeState.isDark}
+        <Sun size={20} class="text-neutral-500 group-hover:text-amber-400 transition-colors" />
+      {:else}
+        <Moon size={20} class="text-neutral-500 group-hover:text-blue-400 transition-colors" />
+      {/if}
+      <span class="absolute left-12 px-2 py-1 bg-neutral-800 text-foreground text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none z-50 whitespace-nowrap shadow-lg border border-border transition-opacity">
+        Toggle Theme
+      </span>
+    </button>
   </div>
 </aside>
 
