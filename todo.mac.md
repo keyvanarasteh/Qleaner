@@ -28,9 +28,9 @@ This document covers the complete workflow for compiling and signing the native 
   - `APPLE_TEAM_ID="..."`
 
 ## 4. Compiling & Production Builds
-- [ ] Native Apple Silicon Target (M1/M2/M3):
+- [x] Native Apple Silicon Target (M1/M2/M3):
   `rustup target add aarch64-apple-darwin`
-- [ ] Universal Binary (Both Intel & Mac - Optional but recommended):
+- [x] Universal Binary (Both Intel & Mac - Optional but recommended):
   `rustup target add x86_64-apple-darwin`
   `bun run tauri build --target universal-apple-darwin`
 - [ ] Build the project for the native chipset:

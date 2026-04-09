@@ -44,9 +44,9 @@ bun run build >> "$LOG_FILE" 2>&1
 # If running on macOS, build natively. If on Linux, cross compilation via osxcross is complex, so we assume native mac or warn.
 if [[ "$OSTYPE" == "darwin"* ]]; then
     log "Native macOS detected. Building Tauri App..."
-    bun run tauri build --target universal-apple-darwin >> "$LOG_FILE" 2>&1
-    cp src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg "$OUTPUT_DIR/" 2>/dev/null || true
-    cp src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app "$OUTPUT_DIR/" -r 2>/dev/null || true
+    bun run tauri build --target aarch64-apple-darwin >> "$LOG_FILE" 2>&1
+    cp src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg "$OUTPUT_DIR/" 2>/dev/null || true
+    cp src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app "$OUTPUT_DIR/" -r 2>/dev/null || true
 else
     log "${YELLOW}Warning:${NC} Building Mac target from a non-Mac host. Cargo may fail unless osxcross is configured."
     bun run tauri build --target $PLATFORM >> "$LOG_FILE" 2>&1
