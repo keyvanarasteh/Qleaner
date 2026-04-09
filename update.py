@@ -29,7 +29,7 @@ try:
     subprocess.run(["git", "commit", "-m", "feat: applied stringent security profiling, CSP strict directives, and zero-panic mutex locking recoveries"])
 except Exception as e: print("Git Error:", e)
 
-token = "7957182560:AAFgUd1EZNUglClnV9WBme3WNgUtstjJHsU"
+token = "<YOUR_TELEGRAM_BOT_TOKEN>"
 chat_id = "1426904527"
 msg = """🛡️ <b>Qleaner SecOps Updates & Backend Hardening Gerçekleşti!</b>
 

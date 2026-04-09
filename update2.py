@@ -31,7 +31,7 @@ try:
 except Exception as e: print("Git Error:", e)
 
 # Telegram Message
-token = "7957182560:AAFgUd1EZNUglClnV9WBme3WNgUtstjJHsU"
+token = "<YOUR_TELEGRAM_BOT_TOKEN>"
 chat_id = "1426904527"
 msg = """🐙 <b>Qleaner CI/CD ve Testing Tesisleri Aktif!</b>
 

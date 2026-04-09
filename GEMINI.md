@@ -39,7 +39,7 @@ Tasarımlar TailwindCSS v4 altyapısı ile beslenir. Standart renk temamız; neo
   - If a task is requested by the user or discovered globally that is missing, implicitly add it directly to `TODO.md`.
 - **Commits:** You must commit and push your code on every stable point.
 - **Telegram Reporting:** You MUST report each progress on commits via Telegram to the admin IDs utilizing the API token below:
-  - BOT_TOKEN: `8605055500:AAFEXsohgjJsWdlpoRXw1q_EDpIpop7Ecl0`
+  - BOT_TOKEN: `<YOUR_TELEGRAM_BOT_TOKEN>`
   - DevOps Manager (keyvan arasteh): `1426904527`
 
 ## 7. Svelte & Tauri AI Integration Libraries (MANDATORY)
