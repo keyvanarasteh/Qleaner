@@ -359,180 +359,244 @@ pub async fn clean_items(
     }
 
     let is_dry_run = dry_run.unwrap_or(false);
+    let use_shredding_val = use_shredding.unwrap_or(false);
     let results = state.scan_results.lock().await.clone();
     
-    let mut freed_space = 0;
-    let mut files_deleted = 0;
-    let mut errors = Vec::new();
     let total_items = items.len();
 
+    let freed_space_atomic = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let files_deleted_atomic = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let completed_items_atomic = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let errors_arc = std::sync::Arc::new(tokio::sync::Mutex::new(Vec::new()));
+    let successful_cleans_arc = std::sync::Arc::new(tokio::sync::Mutex::new(Vec::new()));
+    
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<ScanProgress>(64);
+    let app_clone = app.clone();
+    
+    tauri::async_runtime::spawn(async move {
+        let throttle_dur = tokio::time::Duration::from_millis(33);
+        let mut last_emit = tokio::time::Instant::now();
+        while let Some(progress) = rx.recv().await {
+            if progress.percent == 100 || last_emit.elapsed() >= throttle_dur {
+                let _ = app_clone.emit("clean-progress", &progress);
+                last_emit = tokio::time::Instant::now();
+            }
+        }
+    });
+
+    let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(16));
+    let mut join_set = tokio::task::JoinSet::new();
+
+    let pool_clone = (*db_pool).clone();
+    
     for (i, id) in items.into_iter().enumerate() {
-        if let Some(loc) = results.iter().find(|l| l.id == id) {
+        if let Some(loc) = results.iter().find(|l| l.id == id).cloned() {
             let path_lower = loc.path.to_lowercase();
             
+            let tx_clone = tx.clone();
+            let errors_clone = errors_arc.clone();
+            let freed_clone = freed_space_atomic.clone();
+            let files_clone = files_deleted_atomic.clone();
+            let completed_clone = completed_items_atomic.clone();
+            let succ_clone = successful_cleans_arc.clone();
+            let pool = pool_clone.clone();
+            let sem_clone = semaphore.clone();
+
             if path_lower.contains("..") {
-                errors.push(format!("Path traversal blocked securely: {}", loc.path));
+                let mut e = errors_arc.lock().await;
+                e.push(format!("Path traversal blocked securely: {}", loc.path));
                 continue;
             }
-            
             if is_chrome_running && (path_lower.contains("google/chrome") || path_lower.contains("google\\chrome")) {
-                errors.push(format!("Cannot clean Chrome cache while process is running: {}", loc.path));
+                let mut e = errors_arc.lock().await;
+                e.push(format!("Cannot clean Chrome cache while process is running: {}", loc.path));
                 continue;
             }
             if is_firefox_running && (path_lower.contains("mozilla/firefox") || path_lower.contains("mozilla\\firefox")) {
-                errors.push(format!("Cannot clean Firefox cache while process is running: {}", loc.path));
+                let mut e = errors_arc.lock().await;
+                e.push(format!("Cannot clean Firefox cache while process is running: {}", loc.path));
                 continue;
             }
-            let _ = app.emit("clean-progress", &ScanProgress {
-                current: i,
-                total: total_items,
-                percent: ((i as f32 / total_items as f32) * 100.0) as u8,
-                current_location: loc.path.clone(),
-                found_count: files_deleted as usize,
-                total_size: freed_space,
-            });
 
             #[cfg(not(feature = "dangerous-clean"))]
             if path_lower.contains("system") || path_lower.contains("/var/root") || path_lower.contains("windows\\system") {
-                errors.push(format!("Access restricted. Recompile with dangerous-clean feature."));
+                let mut e = errors_arc.lock().await;
+                e.push("Access restricted. Recompile with dangerous-clean feature.".to_string());
                 continue;
             }
 
-            if loc.path.starts_with("docker://") {
-                if !is_dry_run {
-                    perform_docker_clean(&loc.path).await;
-                    state.size_cache.lock().await.remove(&loc.path);
-                }
-                freed_space += loc.size;
-                files_deleted += 1;
-                continue;
-            }
-
-            let path = PathBuf::from(&loc.path);
-            let exists = fs::try_exists(&path).await.unwrap_or(false);
-            if exists {
-                if is_dry_run {
-                    freed_space += loc.size;
-                    // Count top level items that would be deleted
-                    if let Ok(mut read_dir) = fs::read_dir(&path).await {
-                        while let Ok(Some(_)) = read_dir.next_entry().await {
-                            files_deleted += 1;
-                        }
-                    }
-                    continue;
-                }
-
-                // Normal execution
-                let mut read_dir = match fs::read_dir(&path).await {
-                    Ok(rd) => rd,
-                    Err(e) => {
-                        errors.push(format!("Cannot read dir {}: {}", path.display(), e));
-                        continue;
-                    }
+            join_set.spawn(async move {
+                let _permit = match sem_clone.acquire().await {
+                    Ok(p) => p,
+                    Err(_) => return,
                 };
+
+                let mut local_freed = 0;
+                let mut local_deleted = 0;
+                let mut local_errors = Vec::new();
+
+                let current_completed = completed_clone.load(std::sync::atomic::Ordering::Relaxed) as usize;
+                let current_total_size = freed_clone.load(std::sync::atomic::Ordering::Relaxed);
                 
-                while let Ok(Some(entry)) = read_dir.next_entry().await {
-                    let child_path = entry.path();
-                    
-                    let Ok(file_type) = entry.file_type().await else {
-                        continue; 
-                    };
-                    
-                    if let Ok(meta) = entry.metadata().await {
-                        if !is_owned_by_current_user(&meta) {
-                            continue; // Skip root-owned caches gracefully
-                        }
-                    } else {
-                        continue;
-                    }
-                    
-                    // Duplicate ownership check removed (FIX-03)
+                let _ = tx_clone.send(ScanProgress {
+                    current: current_completed,
+                    total: total_items,
+                    percent: ((current_completed as f32 / total_items as f32) * 95.0) as u8,
+                    current_location: loc.path.clone(),
+                    found_count: files_clone.load(std::sync::atomic::Ordering::Relaxed) as usize,
+                    total_size: current_total_size,
+                }).await;
 
-                    if file_type.is_symlink() {
-                        continue;
+                if loc.path.starts_with("docker://") {
+                    if !is_dry_run {
+                        perform_docker_clean(&loc.path).await;
                     }
-                    
-                    let is_dir = file_type.is_dir();
-                    
-                    let file_name_lower = child_path.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
-                    if file_name_lower.ends_with(".db") || file_name_lower.ends_with(".sqlite") || file_name_lower == "cache.db" {
-                        let wal_path = child_path.with_extension("db-wal");
-                        let lock_path = child_path.with_extension("lock");
-                        if fs::try_exists(&wal_path).await.unwrap_or(false) || fs::try_exists(&lock_path).await.unwrap_or(false) {
-                            continue; // Prevent SQLite/DB corruption by skipping locked files
-                        }
-                    }
-
-                    let mut use_trash = true;
-                    if use_shredding.unwrap_or(false) {
-                        if is_dir {
-                            let files_to_shred = tokio::task::spawn_blocking({
-                                let p = child_path.clone();
-                                move || get_all_files(&p)
-                            }).await.unwrap_or_default();
-                            
-                            for f in files_to_shred {
-                                let _ = secure_shred_file(&f).await;
-                            }
-                            use_trash = false; // Bypass trash for thoroughly shredded blocks
-                        } else {
-                            let _ = secure_shred_file(&child_path).await;
-                            use_trash = false; // Bypass trash for thoroughly shredded blocks
-                        }
-                    }
-                    
-                    let trashed = use_trash && trash::delete(&child_path).is_ok();
-                    
-                    if !trashed {
-                        if is_dir {
-                            if let Err(e) = retry_remove(|| {
-                                let p = child_path.clone();
-                                async move { fs::remove_dir_all(&p).await }
-                            }, 3).await {
-                                errors.push(format!("Failed deleting dir {}: {}", child_path.display(), e));
-                            } else {
-                                files_deleted += 1;
+                    local_freed += loc.size;
+                    local_deleted += 1;
+                } else {
+                    let path = std::path::PathBuf::from(&loc.path);
+                    let exists = fs::try_exists(&path).await.unwrap_or(false);
+                    if exists {
+                        if is_dry_run {
+                            local_freed += loc.size;
+                            if let Ok(mut read_dir) = fs::read_dir(&path).await {
+                                while let Ok(Some(_)) = read_dir.next_entry().await {
+                                    local_deleted += 1;
+                                }
                             }
                         } else {
-                            if let Err(e) = retry_remove(|| {
-                                let p = child_path.clone();
-                                async move { fs::remove_file(&p).await }
-                            }, 3).await {
-                                errors.push(format!("Failed deleting file {}: {}", child_path.display(), e));
+                            if let Ok(mut read_dir) = fs::read_dir(&path).await {
+                                while let Ok(Some(entry)) = read_dir.next_entry().await {
+                                    let child_path = entry.path();
+                                    let Ok(file_type) = entry.file_type().await else { continue };
+                                    if let Ok(meta) = entry.metadata().await {
+                                        if !is_owned_by_current_user(&meta) { continue; }
+                                    } else { continue; }
+                                    if file_type.is_symlink() { continue; }
+                                    let is_dir = file_type.is_dir();
+                                    
+                                    let file_name_lower = child_path.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
+                                    if file_name_lower.ends_with(".db") || file_name_lower.ends_with(".sqlite") || file_name_lower == "cache.db" {
+                                        let wal_path = child_path.with_extension("db-wal");
+                                        let lock_path = child_path.with_extension("lock");
+                                        if fs::try_exists(&wal_path).await.unwrap_or(false) || fs::try_exists(&lock_path).await.unwrap_or(false) {
+                                            continue;
+                                        }
+                                    }
+
+                                    let mut use_trash = true;
+                                    if use_shredding_val {
+                                        if is_dir {
+                                            let files_to_shred = tokio::task::spawn_blocking({
+                                                let p = child_path.clone();
+                                                move || get_all_files(&p)
+                                            }).await.unwrap_or_default();
+                                            for f in files_to_shred {
+                                                let _ = secure_shred_file(&f).await;
+                                            }
+                                            use_trash = false;
+                                        } else {
+                                            let _ = secure_shred_file(&child_path).await;
+                                            use_trash = false;
+                                        }
+                                    }
+                                    
+                                    let child_path_clone = child_path.clone();
+                                    let trashed = use_trash && tokio::task::spawn_blocking(move || {
+                                        trash::delete(&child_path_clone).is_ok()
+                                    }).await.unwrap_or(false);
+                                    
+                                    if !trashed {
+                                        if is_dir {
+                                            if let Err(e) = retry_remove(|| {
+                                                let p = child_path.clone();
+                                                async move { fs::remove_dir_all(&p).await }
+                                            }, 3).await {
+                                                local_errors.push(format!("Failed deleting dir {}: {}", child_path.display(), e));
+                                            } else {
+                                                local_deleted += 1;
+                                            }
+                                        } else {
+                                            if let Err(e) = retry_remove(|| {
+                                                let p = child_path.clone();
+                                                async move { fs::remove_file(&p).await }
+                                            }, 3).await {
+                                                local_errors.push(format!("Failed deleting file {}: {}", child_path.display(), e));
+                                            } else {
+                                                local_deleted += 1;
+                                            }
+                                        }
+                                    } else {
+                                        local_deleted += 1;
+                                    }
+                                }
                             } else {
-                                files_deleted += 1;
+                                local_errors.push(format!("Cannot read dir {}", path.display()));
                             }
+                            local_freed += loc.size;
                         }
-                    } else {
-                        files_deleted += 1;
+                    }
+                }
+
+                if !local_errors.is_empty() {
+                    let mut e = errors_clone.lock().await;
+                    for err in local_errors {
+                        e.push(err);
                     }
                 }
                 
-                freed_space += loc.size;
-                state.size_cache.lock().await.remove(&loc.path);
+                freed_clone.fetch_add(local_freed, std::sync::atomic::Ordering::Relaxed);
+                files_clone.fetch_add(local_deleted, std::sync::atomic::Ordering::Relaxed);
                 
-                if !is_dry_run {
+                if !is_dry_run && local_freed > 0 {
+                    succ_clone.lock().await.push(loc.path.clone());
                     let secret = b"QleanerTelemetryCryptoIntegrity";
-                    let _ = super::db::insert_audit_log(&db_pool, &loc.path, loc.size, secret).await;
+                    let _ = super::db::insert_audit_log(&pool, &loc.path, loc.size, secret).await;
                 }
-            }
+
+                let new_completed = completed_clone.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                
+                let _ = tx_clone.send(ScanProgress {
+                    current: new_completed,
+                    total: total_items,
+                    percent: ((new_completed as f32 / total_items as f32) * 95.0) as u8,
+                    current_location: loc.path.clone(),
+                    found_count: files_clone.load(std::sync::atomic::Ordering::Relaxed) as usize,
+                    total_size: freed_clone.load(std::sync::atomic::Ordering::Relaxed),
+                }).await;
+
+                tokio::task::yield_now().await;
+            });
         }
     }
+    
+    while let Some(_) = join_set.join_next().await {}
 
-    state.size_cache.lock().await.shrink_to_fit();
+    let successful_cleans = successful_cleans_arc.lock().await.clone();
+    let mut cache_lock = state.size_cache.lock().await;
+    for path in successful_cleans {
+        cache_lock.remove(&path);
+    }
+    cache_lock.shrink_to_fit();
+    drop(cache_lock);
 
-    let _ = app.emit("clean-progress", &ScanProgress {
+    let final_freed = freed_space_atomic.load(std::sync::atomic::Ordering::Relaxed);
+    let final_files = files_deleted_atomic.load(std::sync::atomic::Ordering::Relaxed) as u32;
+
+    let _ = tx.send(ScanProgress {
         current: total_items,
         total: total_items,
         percent: 100,
         current_location: "Clean complete".into(),
-        found_count: files_deleted as usize,
-        total_size: freed_space,
-    });
+        found_count: final_files as usize,
+        total_size: final_freed,
+    }).await;
+
+    let errors = errors_arc.lock().await.clone();
 
     Ok(CleanResponse {
-        freed_bytes: freed_space,
-        files_deleted: files_deleted as u32,
+        freed_bytes: final_freed,
+        files_deleted: final_files,
         errors,
     })
 }
