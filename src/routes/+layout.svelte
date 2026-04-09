@@ -33,7 +33,6 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div 
     class="h-10 w-full bg-background/80 backdrop-blur-md border-b border-border fixed top-0 left-0 flex items-center justify-between px-4 z-[900] select-none"
-    data-tauri-drag-region
     onpointerdown={(e) => {
         if (e.buttons === 1 && !(e.target instanceof Element && e.target.closest('button'))) {
             getCurrentWindow().startDragging();
