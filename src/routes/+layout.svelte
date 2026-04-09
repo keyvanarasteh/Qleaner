@@ -11,8 +11,18 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { invoke } from '@tauri-apps/api/core';
   import { onMount } from 'svelte';
+  import { Toaster, toast } from 'svelte-sonner';
   
   let { children } = $props();
+
+  if (typeof window !== "undefined") {
+    window.addEventListener('unhandledrejection', (event) => {
+        const err = event.reason;
+        console.error("Unhandled Promise Rejection:", err);
+        const msg = typeof err === 'string' ? err : (err?.message || "An unexpected error occurred");
+        toast.error("Application Error", { description: msg });
+    });
+  }
   let isBooted = $state(false);
   let hasFullDiskAccess = $state(true);
   let showCloseConfirm = $state(false);
@@ -26,7 +36,7 @@
   });
 </script>
 <ParaglideJS {i18n}>
-
+<Toaster position="top-right" richColors theme={themeState.theme} expand={false} />
 
 <NeuralBootSequence onComplete={() => isBooted = true} />
 
