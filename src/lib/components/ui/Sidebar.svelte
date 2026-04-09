@@ -18,18 +18,18 @@
 
   type ValidRoute = '/' | '/rules' | '/schedules' | '/settings' | '/about' | '/donate' | '/feedback' | '/history';
 
-  const mainNav: Array<{name: string, path: ValidRoute, icon: Component}> = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Rules', path: '/rules', icon: ShieldAlert },
-    { name: 'Schedules', path: '/schedules', icon: CalendarClock },
-    { name: 'Audit', path: '/history', icon: ScrollText },
-    { name: 'Settings', path: '/settings', icon: Settings }
+  const mainNav = [
+    { name: 'Dashboard', path: '/' as ValidRoute, icon: LayoutDashboard },
+    { name: 'Rules', path: '/rules' as ValidRoute, icon: ShieldAlert },
+    { name: 'Schedules', path: '/schedules' as ValidRoute, icon: CalendarClock },
+    { name: 'Audit', path: '/history' as ValidRoute, icon: ScrollText },
+    { name: 'Settings', path: '/settings' as ValidRoute, icon: Settings }
   ];
 
-  const bottomNav: Array<{name: string, path: ValidRoute, icon: Component}> = [
-    { name: 'About', path: '/about', icon: Info },
-    { name: 'Donate', path: '/donate', icon: Heart },
-    { name: 'Feedback', path: '/feedback', icon: MessageSquare }
+  const bottomNav = [
+    { name: 'About', path: '/about' as ValidRoute, icon: Info },
+    { name: 'Donate', path: '/donate' as ValidRoute, icon: Heart },
+    { name: 'Feedback', path: '/feedback' as ValidRoute, icon: MessageSquare }
   ];
 </script>
 

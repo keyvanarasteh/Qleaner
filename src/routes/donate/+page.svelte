@@ -20,8 +20,8 @@
     <p class="text-foreground/70">
       Your donations directly support the maintenance of our advanced OS heuristic servers and open-source infrastructure.
     </p>
-    <a href="javascript:void(0)" class="inline-block bg-[#FF813F] text-white font-bold py-3 px-8 rounded-lg hover:opacity-90 transition-opacity">
+    <button onclick={(e) => e.preventDefault()} class="inline-block bg-[#FF813F] text-white font-bold py-3 px-8 rounded-lg hover:opacity-90 transition-opacity">
       Buy me a coffee →
-    </a>
+    </button>
   </div>
 </div>

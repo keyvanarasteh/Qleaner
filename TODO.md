@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 155 | **Done:** 113 | **Ongoing:** 0 | **Pending:** 42
+> **Total Tasks:** 156 | **Done:** 114 | **Ongoing:** 0 | **Pending:** 42
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -181,3 +181,4 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [x] **146.** **[AUDIT FIX] Dead Imports Cleanup:** Separated macOS-only detector imports behind `#[cfg(target_os)]` in both `cli.rs` and `commands.rs` to eliminate unused import warnings on Linux.
 - [x] **147.** **[AUDIT FIX] libc→nix Migration:** Swapped `libc` crate for `nix` (v0.29 with "user" feature) for safe Unix UID lookups without `unsafe` blocks.
 - [x] **148.** **[AUDIT] i18n False Completion:** Task 97 (i18n) was marked done but zero Paraglide message functions are used in any templates. All UI strings remain hardcoded English. Needs Phase 4 implementation.
+- [x] **156.** **[AUDIT FIX] Svelte 5 Dev Server Errors:** Fixed Lucide icon typing inference failures within `Sidebar.svelte` arrays and resolved an accessibility warning within `donate/+page.svelte`.
