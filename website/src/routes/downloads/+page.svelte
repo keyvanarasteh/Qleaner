@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { DownloadCloud, Info } from 'lucide-svelte';
+	import * as m from '$lib/paraglide/messages';
 
 	// Mock OS Download Data
 	const downloads = [
@@ -37,10 +38,10 @@
 	
 	<div class="text-center max-w-2xl">
 		<h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
-			Download <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-teal">Qleaner</span>
+			{m.dl_hero_title_1()} <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-teal">{m.dl_hero_title_2()}</span>
 		</h1>
 		<p class="text-lg text-slate-400">
-			Choose your operating system below to get the latest stable version of Qleaner (v1.0.0). No installation required for portable formats.
+			{m.dl_hero_desc()}
 		</p>
 	</div>
 
@@ -51,14 +52,14 @@
 				
 				<h2 class="text-2xl font-bold {dl.text} mb-1">{dl.os}</h2>
 				<div class="text-sm text-slate-400 mb-6">
-					<p>Format: <strong>{dl.format}</strong></p>
-					<p>Arch: <strong>{dl.arch}</strong></p>
+					<p>{m.dl_card_format()} <strong>{dl.format}</strong></p>
+					<p>{m.dl_card_arch()} <strong>{dl.arch}</strong></p>
 				</div>
 
 				<div class="mt-auto pt-6 border-t border-white/10">
 					<button class="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3 px-4 font-semibold transition-colors {dl.button}">
 						<DownloadCloud class="w-5 h-5" />
-						Download
+						{m.dl_btn_dl()}
 					</button>
 				</div>
 			</div>
@@ -69,7 +70,7 @@
 	<div class="flex items-start gap-3 rounded-lg border border-neon-teal/20 bg-neon-teal/5 p-4 max-w-3xl text-sm text-slate-300">
 		<Info class="w-5 h-5 text-neon-teal shrink-0 mt-0.5" />
 		<div>
-			<strong class="text-neon-teal">System Requirements:</strong> Qleaner runs securely entirely locally on your machine. You do not need an internet connection after download. Administrative privileges might be required for deep system cache clearing on Windows and macOS.
+			<strong class="text-neon-teal">{m.dl_sys_req_title()}</strong> {m.dl_sys_req_desc()}
 		</div>
 	</div>
 

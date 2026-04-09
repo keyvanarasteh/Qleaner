@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { Download, Zap, Shield, HardDrive, Terminal } from 'lucide-svelte';
+	import * as m from '$lib/paraglide/messages';
 </script>
 
 <div class="w-full flex-1 flex flex-col items-center justify-center text-center space-y-20 min-h-[80vh]">
@@ -9,17 +10,16 @@
 	<section class="flex flex-col items-center max-w-4xl space-y-6 pt-10">
 		<div class="inline-flex items-center gap-2 rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-4 py-1.5 text-sm font-medium text-neon-cyan backdrop-blur-md">
 			<span class="flex h-2 w-2 rounded-full bg-neon-cyan animate-pulse"></span>
-			v1.0.0 is now available
+			{m.home_release_tag()}
 		</div>
 		
 		<h1 class="text-5xl md:text-7xl font-extrabold tracking-tight text-white">
-			Reclaim <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-teal">Disk Space.</span> <br/>
-			Boost <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-magenta to-neon-cyan">Performance.</span>
+			{m.home_hero_1()} <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-teal">{m.home_hero_2()}</span> <br/>
+			{m.home_hero_3()} <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon-magenta to-neon-cyan">{m.home_hero_4()}</span>
 		</h1>
 		
 		<p class="mt-4 max-w-2xl text-xl text-slate-400">
-			A blazing fast, cross-platform system utility built with Rust, Svelte 5, and Tauri.
-			Deep clean your OS safely, locally, and beautifully.
+			{m.home_desc()}
 		</p>
 		
 		<div class="mt-10 flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
@@ -29,14 +29,14 @@
 			>
 				<span class="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100"></span>
 				<Download class="w-5 h-5" />
-				Download for Free
+				{m.home_btn_dl()}
 			</a>
 			<a 
 				href={resolve('/docs')} 
 				class="inline-flex items-center justify-center gap-2 rounded-xl border border-obsidian-border bg-obsidian-glass backdrop-blur-md px-8 py-4 font-semibold text-white transition-colors hover:bg-white/5 hover:text-neon-cyan"
 			>
 				<Terminal class="w-5 h-5" />
-				View Documentation
+				{m.home_btn_docs()}
 			</a>
 		</div>
 	</section>
@@ -50,8 +50,8 @@
 				<div class="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-neon-cyan/10 text-neon-cyan">
 					<Zap class="w-6 h-6" />
 				</div>
-				<h3 class="text-xl font-bold text-white mb-2">Blazing Fast</h3>
-				<p class="text-slate-400">Powered by Rust and Tokio async I/O. Scans and cleans your filesystem with unparalleled speed, unlocking gigabytes in seconds.</p>
+				<h3 class="text-xl font-bold text-white mb-2">{m.home_feat1_title()}</h3>
+				<p class="text-slate-400">{m.home_feat1_desc()}</p>
 			</div>
 
 			<!-- Feature 2 -->
@@ -60,8 +60,8 @@
 				<div class="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-neon-teal/10 text-neon-teal">
 					<HardDrive class="w-6 h-6" />
 				</div>
-				<h3 class="text-xl font-bold text-white mb-2">Cross-Platform</h3>
-				<p class="text-slate-400">Native performance and identical UI across Linux, macOS, and Windows. Build once, clean anywhere using Tauri v2.</p>
+				<h3 class="text-xl font-bold text-white mb-2">{m.home_feat2_title()}</h3>
+				<p class="text-slate-400">{m.home_feat2_desc()}</p>
 			</div>
 
 			<!-- Feature 3 -->
@@ -70,8 +70,8 @@
 				<div class="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-neon-magenta/10 text-neon-magenta">
 					<Shield class="w-6 h-6" />
 				</div>
-				<h3 class="text-xl font-bold text-white mb-2">Memory Safe</h3>
-				<p class="text-slate-400">Strict zero-unsafe Rust architecture ensures zero crashes, zero memory leaks, and absolute safety for your operating system.</p>
+				<h3 class="text-xl font-bold text-white mb-2">{m.home_feat3_title()}</h3>
+				<p class="text-slate-400">{m.home_feat3_desc()}</p>
 			</div>
 		</div>
 	</section>

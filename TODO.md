@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 129 | **Done:** 87 | **Ongoing:** 0 | **Pending:** 42
+> **Total Tasks:** 130 | **Done:** 88 | **Ongoing:** 0 | **Pending:** 42
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -67,6 +67,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 ---
 ## ✅ Completed Tasks (Archive)
 *Historical preservation of implemented milestones.*
+- [x] **130.** **UX Coverage (Full Website Localization):** Translated the Landing page, Features, Docs, and Downloads layouts dynamically utilizing Paraglide configuration files and deployed to staging.
 - [x] **127.** **UX Coverage (Shredding Policy Selector):** Implement a strict settings toggle within Svelte assigning the security mode (Standard Unlink vs DoD 5220.22-M Multi-pass) dynamically triggering backend modes globally.
 - [x] **77.** **Sudo Policy Enforcer:** If macOS requires Full Disk Access, implement a watcher that detects lacking permissions and redirects the user to `System Settings -> Privacy`.
 - [x] **42.** **Virtual Listicles:** The table renders every row. If thousands of junk locations are found, the DOM will lag. Implement `svelte-virtual-list`.
