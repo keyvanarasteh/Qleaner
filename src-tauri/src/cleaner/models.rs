@@ -98,6 +98,7 @@ pub struct CleanerState {
     pub leftover_scan_in_progress: tokio::sync::Mutex<bool>,
     pub cancel_token: tokio::sync::Mutex<CancellationToken>,
     pub size_cache: tokio::sync::Mutex<HashMap<String, u64>>,
+    pub deep_scan_results: tokio::sync::Mutex<HashMap<String, Vec<std::path::PathBuf>>>,
 }
 
 impl CleanerState {
@@ -112,6 +113,7 @@ impl CleanerState {
             leftover_scan_in_progress: tokio::sync::Mutex::new(false),
             cancel_token: tokio::sync::Mutex::new(CancellationToken::new()),
             size_cache: tokio::sync::Mutex::new(HashMap::new()),
+            deep_scan_results: tokio::sync::Mutex::new(HashMap::new()),
         }
     }
 }

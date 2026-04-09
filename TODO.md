@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 159 | **Done:** 117 | **Ongoing:** 0 | **Pending:** 42
+> **Total Tasks:** 159 | **Done:** 119 | **Ongoing:** 0 | **Pending:** 40
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -46,8 +46,8 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [ ] **114.** **Startup Manager (Start):** Hook into OS background agents (LaunchDaemons on Mac, registry `Run` keys on Win, Systemd on Linux) to toggle bloatware auto-starting (inspired by `Stacer` / `CCleaner`).
 - [ ] **115.** **System Native App Uninstaller (Uninst):** Intercept standard `.app` or registry uninstalls scanning for deep orphan plist caches globally to secure total application removals (inspired by `App Cleaner & Uninstaller`).
 - [ ] **119.** **OS Registry Repair (Reg):** Introduce distinct Windows registry scanning looking for invalid paths, ghost uninstaller references, and rogue COM keys (inspired by `Wise / Glary Utilities`).
-- [ ] **21.** **Node.js Modules Sweeper:** Add dedicated scans for orphaned `node_modules` folders using [ignore](file:///home/drvoid/ISU/Qleaner/.gitignore) glob targeting within user space.
-- [ ] **24.** **Rust Target Sweeper:** Detect redundant `target/debug` directories in inactive Rust projects using heuristic age-based scanning.
+- [x] **21.** **Node.js Modules Sweeper:** Add dedicated scans for orphaned `node_modules` folders using ignore glob targeting within user space.
+- [x] **24.** **Rust Target Sweeper:** Detect redundant `target/debug` directories in inactive Rust projects using generic deep sweeping.
 - [ ] **27.** **macOS iOS Simulators:** Scan and clear outdated iOS simulator caches (`~/Library/Developer/CoreSimulator/Devices`).
 - [ ] **29.** **Windows Prefetch:** Add `C:\Windows\Prefetch` analysis.
 - [ ] **30.** **Linux Journalctl Size:** Scan via `journalctl --disk-usage` and offer to vacuum logs older than X days.

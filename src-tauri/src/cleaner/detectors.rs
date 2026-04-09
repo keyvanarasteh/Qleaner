@@ -294,6 +294,30 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
         size: 0, size_human: "0B".into(), selected: true, exists: false,
     });
 
+    locations.push(CacheLocation {
+        id: "deep_node_modules".into(),
+        path: "deep_scan://node_modules".into(),
+        name: "Deep Node Modules".into(),
+        description: "Recursively scans ~ for node_modules in projects".into(),
+        category: "Developer".into(),
+        hint: "Crawls the disk to find scattered JS/TS dependencies.".into(),
+        impact: "Projects will need 'npm install' to run again.".into(),
+        risk: "low".into(),
+        size: 0, size_human: "0B".into(), selected: false, exists: true,
+    });
+
+    locations.push(CacheLocation {
+        id: "deep_rust_targets".into(),
+        path: "deep_scan://rust_target".into(),
+        name: "Deep Rust Targets".into(),
+        description: "Recursively scans ~ for Rust 'target' directories beside Cargo.toml".into(),
+        category: "Developer".into(),
+        hint: "Crawls the disk to find bulky Rust compilation outputs.".into(),
+        impact: "Projects will need 'cargo build' to recompile.".into(),
+        risk: "low".into(),
+        size: 0, size_human: "0B".into(), selected: false, exists: true,
+    });
+
     locations
 }
 

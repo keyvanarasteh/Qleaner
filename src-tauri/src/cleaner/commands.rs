@@ -156,7 +156,7 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
     *state.cancel_token.lock().await = token.clone();
     
     let sizes_cache = state.size_cache.lock().await.clone();
-    let mut locations = get_cache_locations();
+    let locations = get_cache_locations();
     let total = locations.len();
     
     let (tx, mut rx) = tokio::sync::mpsc::channel::<ScanProgress>(64);
@@ -238,6 +238,27 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
                             found_clone.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                             size_clone.fetch_add(s, std::sync::atomic::Ordering::Relaxed);
                         }
+                    } else {
+                        loc.exists = false;
+                    }
+                } else if path_str.starts_with("deep_scan://") {
+                    let target = if path_str.contains("node_modules") { "node_modules" } else { "rust_target" };
+                    let t = token_clone.clone();
+                    let (s, paths) = tokio::task::spawn_blocking(move || {
+                        super::scanner::find_deep_evictions(target, t)
+                    }).await.unwrap_or((0, vec![]));
+                    
+                    if s > 0 {
+                        loc.exists = true;
+                        loc.size = s;
+                        loc.size_human = human_readable_size(s);
+                        found_clone.fetch_add(paths.len(), std::sync::atomic::Ordering::Relaxed);
+                        size_clone.fetch_add(s, std::sync::atomic::Ordering::Relaxed);
+                        computed_size_delta = s;
+
+                        let state = app_worker_clone.state::<CleanerState>();
+                        let mut lock = state.deep_scan_results.lock().await;
+                        lock.insert(path_str.clone(), paths);
                     } else {
                         loc.exists = false;
                     }
@@ -425,6 +446,8 @@ pub async fn clean_items(
                 continue;
             }
 
+            let app_handle_clone = app.clone();
+
             join_set.spawn(async move {
                 let _permit = match sem_clone.acquire().await {
                     Ok(p) => p,
@@ -453,6 +476,39 @@ pub async fn clean_items(
                     }
                     local_freed += loc.size;
                     local_deleted += 1;
+                } else if loc.path.starts_with("deep_scan://") {
+                    let state = app_handle_clone.state::<CleanerState>();
+                    let paths_to_clean = {
+                        let lock = state.deep_scan_results.lock().await;
+                        lock.get(&loc.path).cloned().unwrap_or_default()
+                    };
+                    
+                    if !is_dry_run {
+                        for target_dir in &paths_to_clean {
+                            if use_shredding_val {
+                                let files_to_shred = tokio::task::spawn_blocking({
+                                    let p = target_dir.clone();
+                                    move || get_all_files(&p)
+                                }).await.unwrap_or_default();
+                                for f in files_to_shred {
+                                    let _ = secure_shred_file(&f).await;
+                                }
+                            }
+                            let p_clone = target_dir.clone();
+                            let trashed = !use_shredding_val && tokio::task::spawn_blocking(move || {
+                                trash::delete(&p_clone).is_ok()
+                            }).await.unwrap_or(false);
+                            
+                            if !trashed {
+                                let _ = retry_remove(|| {
+                                    let p = target_dir.clone();
+                                    async move { fs::remove_dir_all(&p).await }
+                                }, 3).await;
+                            }
+                        }
+                    }
+                    local_freed += loc.size;
+                    local_deleted += paths_to_clean.len() as u32;
                 } else {
                     let path = std::path::PathBuf::from(&loc.path);
                     let exists = fs::try_exists(&path).await.unwrap_or(false);
@@ -546,7 +602,7 @@ pub async fn clean_items(
                 }
                 
                 freed_clone.fetch_add(local_freed, std::sync::atomic::Ordering::Relaxed);
-                files_clone.fetch_add(local_deleted, std::sync::atomic::Ordering::Relaxed);
+                files_clone.fetch_add(local_deleted as u64, std::sync::atomic::Ordering::Relaxed);
                 
                 if !is_dry_run && local_freed > 0 {
                     succ_clone.lock().await.push(loc.path.clone());

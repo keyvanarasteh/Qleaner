@@ -49,7 +49,9 @@
         { name: 'NPM Global Cache', path: '~/.npm' },
         { name: 'PNPM Store', path: '~/.local/share/pnpm/store' },
         { name: 'Yarn Cache', path: '~/.cache/yarn' },
-        { name: 'Rust Cargo Registry', path: '~/.cargo/registry' }
+        { name: 'Rust Cargo Registry', path: '~/.cargo/registry' },
+        { name: 'Deep Node Modules', path: '~/.../node_modules' },
+        { name: 'Deep Rust Targets', path: '~/.../target' }
       ]
     },
     {

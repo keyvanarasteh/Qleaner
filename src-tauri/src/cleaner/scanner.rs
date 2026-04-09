@@ -47,6 +47,73 @@ pub fn get_directory_size(path: &Path, token: CancellationToken) -> u64 {
     total_size.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+pub fn find_deep_evictions(target: &str, token: CancellationToken) -> (u64, Vec<std::path::PathBuf>) {
+    let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/"));
+    
+    let total_size = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let found_paths = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    
+    let is_node = target == "node_modules";
+    let is_rust = target == "rust_target";
+    
+    let mut builder = WalkBuilder::new(home);
+    builder.standard_filters(false);
+    builder.follow_links(false);
+    builder.threads(2); // Reduced to prevent nested thread pool explosion
+    builder.filter_entry(|e| {
+        if e.file_type().map_or(false, |ft| ft.is_dir()) {
+            if let Some(name) = e.file_name().to_str() {
+                if name.starts_with('.') && name != ".npm" { return false; }
+                if name == "Library" || name == "AppData" || name == "Windows" || name == "System" || name == "Applications" || name == "Applications (Parallels)" { return false; }
+            }
+        }
+        true
+    });
+
+    builder.build_parallel().run(|| {
+        let thread_token = token.clone();
+        let ts_clone = total_size.clone();
+        let paths_clone = found_paths.clone();
+        
+        Box::new(move |result| {
+            if thread_token.is_cancelled() {
+                return ignore::WalkState::Quit;
+            }
+            if let Ok(entry) = result {
+                if let Ok(metadata) = std::fs::symlink_metadata(entry.path()) {
+                    if metadata.is_dir() {
+                        let name = entry.file_name().to_string_lossy();
+                        let mut do_skip_and_compute = false;
+                        
+                        if is_node && name == "node_modules" {
+                            do_skip_and_compute = true;
+                        } else if is_rust && name == "target" {
+                            let toml = entry.path().parent().unwrap_or_else(|| entry.path()).join("Cargo.toml");
+                            if toml.exists() {
+                                do_skip_and_compute = true;
+                            }
+                        }
+                        
+                        if do_skip_and_compute {
+                            let path = entry.path().to_path_buf();
+                            if let Ok(mut lock) = paths_clone.lock() {
+                                lock.push(path.clone());
+                            }
+                            let size = get_directory_size(&path, thread_token.clone());
+                            ts_clone.fetch_add(size, std::sync::atomic::Ordering::Relaxed);
+                            return ignore::WalkState::Skip;
+                        }
+                    }
+                }
+            }
+            ignore::WalkState::Continue
+        })
+    });
+    
+    let final_paths = found_paths.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    (total_size.load(std::sync::atomic::Ordering::Relaxed), final_paths)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
