@@ -33,9 +33,11 @@
 {#if isBooted}
 <div class="h-10 w-full fixed top-0 left-0 z-[900] select-none">
     <!-- Drag layer: sits behind everything, handles window dragging natively -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div 
         class="absolute inset-0 bg-background border-b border-border"
         data-tauri-drag-region
+        ondblclick={() => getCurrentWindow().toggleMaximize()}
     ></div>
 
     <!-- Foreground content: logo + window controls -->
