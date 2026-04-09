@@ -1,0 +1,13 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"footer_credits": "Proudly developed in Istanbul by Turkish engineers with excellence and dedication.",
+	"nav_home": "Home",
+	"nav_features": "Features",
+	"nav_docs": "Docs",
+	"nav_downloads": "Downloads",
+	"nav_install": "Install Now",
+	"footer_doc": "Documentation",
+	"footer_rel": "Releases",
+	"footer_iss": "Report Issue",
+	"footer_desc": "A cross-platform system utility built with Rust & Svelte 5."
+}

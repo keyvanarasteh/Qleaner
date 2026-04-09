@@ -1,0 +1,13 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"footer_credits": "İstanbul'da Türk mühendisler tarafından mükemmellik ve bağlılıkla gururla geliştirilmiştir.",
+	"nav_home": "Ana Sayfa",
+	"nav_features": "Özellikler",
+	"nav_docs": "Belgeler",
+	"nav_downloads": "İndir",
+	"nav_install": "Hemen Yükle",
+	"footer_doc": "Belgeler",
+	"footer_rel": "Sürümler",
+	"footer_iss": "Hata Bildir",
+	"footer_desc": "Rust ve Svelte 5 ile oluşturulmuş çapraz platform sistem aracı."
+}
