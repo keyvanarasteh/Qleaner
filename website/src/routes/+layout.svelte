@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import type { Snippet } from 'svelte';
 	import './layout.css';
 	import Navbar from '$lib/components/ui/Navbar.svelte';

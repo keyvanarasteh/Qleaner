@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Cpu, HardDrive, Trash2, Search, ArrowRight, ShieldCheck, Activity } from 'lucide-svelte';
+	import { Trash2, Search, ShieldCheck, Activity } from 'lucide-svelte';
 </script>
 
 <div class="w-full flex flex-col items-center py-12 space-y-16">

@@ -45,7 +45,7 @@
 	</div>
 
 	<div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl">
-		{#each downloads as dl}
+		{#each downloads as dl (dl.os)}
 			<div class="relative flex flex-col rounded-2xl border bg-gradient-to-br bg-obsidian p-8 transition-transform hover:-translate-y-1 {dl.color}">
 				<div class="text-4xl mb-4">{dl.icon}</div>
 				
