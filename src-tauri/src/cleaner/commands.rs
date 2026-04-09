@@ -176,93 +176,134 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
 
     let app_worker = app.clone();
     tauri::async_runtime::spawn(async move {
-        let mut found_count = 0;
-        let mut total_size = 0;
-        let mut local_cache_updates = HashMap::new();
+        let completed_items = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let found_count_atomic = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let total_size_atomic = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(16));
 
-        // Emit initial "starting" progress immediately
         let _ = tx.send(ScanProgress {
             current: 0,
             total,
             percent: 1,
-            current_location: "Starting scan...".into(),
+            current_location: "Starting concurrent scan...".into(),
             found_count: 0,
             total_size: 0,
         }).await;
 
-        for (i, loc) in locations.iter_mut().enumerate() {
-            if token.is_cancelled() {
-                break;
-            }
+        let mut join_set = tokio::task::JoinSet::new();
 
-            // Emit "scanning" progress BEFORE computing size
-            let _ = tx.send(ScanProgress {
-                current: i,
-                total,
-                percent: ((i as f32 / total as f32) * 95.0) as u8 + 2, // 2-97% range
-                current_location: loc.path.clone(),
-                found_count,
-                total_size,
-            }).await;
-
-            let path_str = loc.path.clone();
-
-            if path_str.starts_with("docker://") {
-                if let Some(s) = fetch_docker_size(&path_str).await {
-                    loc.exists = true;
-                    loc.size = s;
-                    loc.size_human = human_readable_size(s);
-                    if s > 0 {
-                        found_count += 1;
-                        total_size += s;
-                    }
-                } else {
-                    loc.exists = false;
-                }
-            } else {
-                let path = PathBuf::from(&loc.path);
-                loc.exists = fs::try_exists(&path).await.unwrap_or(false);
-            if loc.exists {
-                let size = if let Some(cached_size) = sizes_cache.get(&loc.path) {
-                    *cached_size
-                } else {
-                    let path_clone = path.clone();
-                    let token_clone = token.clone();
-                    let computed_size = tokio::task::spawn_blocking(move || {
-                        get_directory_size(&path_clone, token_clone)
-                    }).await.unwrap_or(0);
-                    
-                    local_cache_updates.insert(loc.path.clone(), computed_size);
-                    computed_size
+        for (idx, loc) in locations.into_iter().enumerate() {
+            let mut loc = loc;
+            let token_clone = token.clone();
+            let sizes_cache_clone = sizes_cache.clone();
+            let completed_clone = completed_items.clone();
+            let found_clone = found_count_atomic.clone();
+            let size_clone = total_size_atomic.clone();
+            let sem_clone = semaphore.clone();
+            let tx_clone = tx.clone();
+            let app_worker_clone = app_worker.clone();
+            
+            join_set.spawn(async move {
+                let _permit = match sem_clone.acquire().await {
+                    Ok(p) => p,
+                    Err(_) => return (idx, loc, 0u64),
                 };
                 
-                loc.size = size;
-                loc.size_human = human_readable_size(size);
-                if size > 0 {
-                    found_count += 1;
-                    total_size += size;
+                if token_clone.is_cancelled() {
+                    return (idx, loc, 0u64);
+                }
+
+                let current_completed = completed_clone.load(std::sync::atomic::Ordering::Relaxed);
+                let current_found = found_clone.load(std::sync::atomic::Ordering::Relaxed);
+                let current_size = size_clone.load(std::sync::atomic::Ordering::Relaxed);
+                
+                let _ = tx_clone.send(ScanProgress {
+                    current: current_completed,
+                    total,
+                    percent: ((current_completed as f32 / total as f32) * 95.0) as u8 + 2,
+                    current_location: loc.path.clone(),
+                    found_count: current_found,
+                    total_size: current_size,
+                }).await;
+
+                let path_str = loc.path.clone();
+                let mut computed_size_delta = 0u64;
+
+                if path_str.starts_with("docker://") {
+                    if let Some(s) = fetch_docker_size(&path_str).await {
+                        loc.exists = true;
+                        loc.size = s;
+                        loc.size_human = human_readable_size(s);
+                        if s > 0 {
+                            found_clone.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            size_clone.fetch_add(s, std::sync::atomic::Ordering::Relaxed);
+                        }
+                    } else {
+                        loc.exists = false;
+                    }
+                } else {
+                    let path = PathBuf::from(&loc.path);
+                    loc.exists = fs::try_exists(&path).await.unwrap_or(false);
+                    if loc.exists {
+                        let size = if let Some(cached_size) = sizes_cache_clone.get(&loc.path) {
+                            *cached_size
+                        } else {
+                            let path_clone = path.clone();
+                            let t = token_clone.clone();
+                            let s = tokio::task::spawn_blocking(move || {
+                                get_directory_size(&path_clone, t)
+                            }).await.unwrap_or(0);
+                            computed_size_delta = s;
+                            s
+                        };
+                        
+                        loc.size = size;
+                        loc.size_human = human_readable_size(size);
+                        if size > 0 {
+                            found_clone.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            size_clone.fetch_add(size, std::sync::atomic::Ordering::Relaxed);
+                        }
+                    }
+                }
+
+                let new_completed = completed_clone.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                let new_found = found_clone.load(std::sync::atomic::Ordering::Relaxed);
+                let new_size = size_clone.load(std::sync::atomic::Ordering::Relaxed);
+
+                if loc.exists && loc.size > 0 {
+                    let _ = app_worker_clone.emit("scan-result-item", loc.clone());
+                }
+
+                let _ = tx_clone.send(ScanProgress {
+                    current: new_completed,
+                    total,
+                    percent: ((new_completed as f32 / total as f32) * 95.0) as u8 + 2,
+                    current_location: loc.path.clone(),
+                    found_count: new_found,
+                    total_size: new_size,
+                }).await;
+
+                tokio::task::yield_now().await;
+                (idx, loc, computed_size_delta)
+            });
+        }
+
+        let mut final_results: Vec<Option<super::models::CacheLocation>> = vec![None; total];
+        let mut local_cache_updates = HashMap::new();
+
+        while let Some(res) = join_set.join_next().await {
+            if let Ok((idx, loc, computed_delta)) = res {
+                final_results[idx] = Some(loc.clone());
+                if computed_delta > 0 {
+                    local_cache_updates.insert(loc.path, computed_delta);
                 }
             }
         }
+        
+        // Rebuild ordered array
+        let sorted_locations: Vec<super::models::CacheLocation> = final_results.into_iter().flatten().collect();
 
-            // Emit per-item result so UI can render incrementally
-            if loc.exists && loc.size > 0 {
-                let _ = app_worker.emit("scan-result-item", loc.clone());
-            }
 
-            // Emit post-scan progress with updated counts
-            let _ = tx.send(ScanProgress {
-                current: i + 1,
-                total,
-                percent: (((i + 1) as f32 / total as f32) * 95.0) as u8 + 2,
-                current_location: loc.path.clone(),
-                found_count,
-                total_size,
-            }).await;
-
-            // Yield to allow UI events to be processed
-            tokio::task::yield_now().await;
-        }
 
         let state = app_worker.state::<CleanerState>();
         
@@ -273,7 +314,7 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
         drop(global_cache);
 
         let mut scan_results = state.scan_results.lock().await;
-        *scan_results = locations.clone();
+        *scan_results = sorted_locations;
         
         let mut in_progress = state.scan_in_progress.lock().await;
         *in_progress = false;
@@ -283,8 +324,8 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
             total,
             percent: 100,
             current_location: if token.is_cancelled() { "Scan cancelled".into() } else { "Scan complete".into() },
-            found_count,
-            total_size,
+            found_count: found_count_atomic.load(std::sync::atomic::Ordering::Relaxed),
+            total_size: total_size_atomic.load(std::sync::atomic::Ordering::Relaxed),
         }).await;
     });
 

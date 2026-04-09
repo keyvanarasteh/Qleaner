@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 154 | **Done:** 112 | **Ongoing:** 0 | **Pending:** 42
+> **Total Tasks:** 155 | **Done:** 113 | **Ongoing:** 0 | **Pending:** 42
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -17,6 +17,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [x] **152.** **[AUDIT FIX] Incomplete Secure Shredder:** The `secure_shred_file` algorithm successfully overwrites data iteratively but fails to cryptographically rename the file name before calling `fs::remove_file`, leaving metadata (names/extensions) recoverable.
 - [x] **153.** **[AUDIT FIX] Synchronous Defaults Sub-process:** `detectors.rs` iterates over `/Applications` and synchronously spawns the `defaults` CLI per `.app` to parse `Info.plist`. This blocking overhead crushes the leftover scan pipeline.
 - [x] **154.** **[AUDIT FIX] Missing Cross-Platform Leftover Support:** `start_leftover_scan` immediately exits `Ok(())` on Linux/Windows. The UX "Leftovers" panel remains permanently disabled outside of macOS.
+- [x] **155.** **[AUDIT NEW] System Scanner Concurrency Pipeline:** Rewritten `start_scan` to use `JoinSet` batching blocked by `Semaphore(16)`. Replaced sequence looping with thread-safe atomics (`completed_items`), and tuned the deep `WalkBuilder` engine's internal pool to prevent CPU thread exhaustion on fast parallel NVMe scans.
 
 - [ ] **85.** **E2E Tests (Playwright):** Integrate Playwright for Tauri E2E testing to simulate UI clicks automatically spawning mocked Tauri commands.
 - [ ] **98.** **Crash Reporting:** Integrate Sentry natively via `sentry-rust` and `sentry-javascript` to catch unhandled application panics remotely.

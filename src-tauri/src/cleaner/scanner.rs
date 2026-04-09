@@ -25,7 +25,7 @@ pub fn get_directory_size(path: &Path, token: CancellationToken) -> u64 {
     WalkBuilder::new(path)
         .standard_filters(false)
         .follow_links(false) // Task 16: Symlink Safeties
-        .threads(std::thread::available_parallelism().map(std::num::NonZero::get).unwrap_or(4))
+        .threads(2)
         .build_parallel()
         .run(|| {
             let thread_token = token.clone();
