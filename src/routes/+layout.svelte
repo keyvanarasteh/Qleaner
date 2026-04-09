@@ -11,8 +11,6 @@
   import { invoke } from '@tauri-apps/api/core';
   import { onMount } from 'svelte';
   
-  const appWindow = typeof window !== 'undefined' ? getCurrentWindow() : null;
-
   let { children } = $props();
   let isBooted = $state(false);
   let hasFullDiskAccess = $state(true);
@@ -31,20 +29,29 @@
 <NeuralBootSequence onComplete={() => isBooted = true} />
 
 {#if isBooted}
-<div data-tauri-drag-region class="h-10 w-full bg-background/80 backdrop-blur-md border-b border-border fixed top-0 left-0 flex items-center justify-between px-4 z-[900] select-none">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div 
+    class="h-10 w-full bg-background/80 backdrop-blur-md border-b border-border fixed top-0 left-0 flex items-center justify-between px-4 z-[900] select-none"
+    data-tauri-drag-region
+    onpointerdown={(e) => {
+        if (e.buttons === 1 && !(e.target instanceof Element && e.target.closest('button'))) {
+            getCurrentWindow().startDragging();
+        }
+    }}
+>
     <div class="flex items-center gap-2 pointer-events-none">
         <Monitor size={14} class="text-primary" />
         <span class="text-xs font-semibold text-neutral-400 tracking-wide">QLEANER</span>
     </div>
     
     <div class="flex items-center gap-2">
-        <button onclick={() => appWindow?.minimize()} class="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-foreground transition-colors" title="Minimize">
+        <button onclick={() => getCurrentWindow().minimize()} class="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-foreground transition-colors" title="Minimize">
             <Minus size={14} />
         </button>
-        <button onclick={() => appWindow?.toggleMaximize()} class="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-foreground transition-colors" title="Maximize">
+        <button onclick={() => getCurrentWindow().toggleMaximize()} class="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-foreground transition-colors" title="Maximize">
             <Square size={14} />
         </button>
-        <button onclick={() => appWindow?.close()} class="p-1.5 rounded-md text-neutral-400 hover:bg-red-500 hover:text-white transition-colors" title="Close">
+        <button onclick={() => getCurrentWindow().close()} class="p-1.5 rounded-md text-neutral-400 hover:bg-red-500 hover:text-white transition-colors" title="Close">
             <X size={14} />
         </button>
     </div>
