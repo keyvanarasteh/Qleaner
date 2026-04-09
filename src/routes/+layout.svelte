@@ -31,11 +31,10 @@
 
 {#if isBooted}
 <div class="h-10 w-full fixed top-0 left-0 z-[900] select-none">
-    <!-- Drag layer: sits behind everything, handles window dragging -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- Drag layer: sits behind everything, handles window dragging natively -->
     <div 
         class="absolute inset-0 bg-background/80 backdrop-blur-md border-b border-border"
-        onmousedown={() => getCurrentWindow().startDragging()}
+        data-tauri-drag-region
     ></div>
 
     <!-- Foreground content: logo + window controls -->
