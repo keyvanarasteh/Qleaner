@@ -7,11 +7,11 @@
 
 	let isOpen = $state(false);
 
-	let links = $derived([
-		{ name: m.nav_home(), href: '/' as const },
-		{ name: m.nav_features(), href: '/features' as const },
-		{ name: m.nav_docs(), href: '/docs' as const },
-		{ name: m.nav_downloads(), href: '/downloads' as const }
+	let links: Array<{ name: string; href: '/' | '/features' | '/docs' | '/downloads' }> = $derived([
+		{ name: m.nav_home(), href: '/' },
+		{ name: m.nav_features(), href: '/features' },
+		{ name: m.nav_docs(), href: '/docs' },
+		{ name: m.nav_downloads(), href: '/downloads' }
 	]);
 
 	let currentPath = $derived(page.url.pathname);
