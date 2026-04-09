@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 158 | **Done:** 116 | **Ongoing:** 0 | **Pending:** 42
+> **Total Tasks:** 159 | **Done:** 117 | **Ongoing:** 0 | **Pending:** 42
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -13,6 +13,8 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 
 - [x] **157.** **[UX NEW] Cleaner Heuristics Dashboard:** Introduced a `/heuristics` visualization page showcasing Mermaid backend architecture algorithm logic and cleanup capabilities.
 - [x] **158.** **[UX FIX] Custom Tauri Titlebar Controls:** Addressed dynamic Svelte 5 rendering bypassing native Tauri `data-tauri-drag-region` logic. Re-implemented manual `getCurrentWindow().startDragging()` hook and fixed un-responsive window close/minimize buttons.
+- [x] **159.** **[UX FIX] Dashboard DOM Optimization:** Replaced visually heavy bento boxes with a dense Pro-minimalist datagrid. Debounced `$derived` array loops for active sorting payload so the frontend DOM stops thrashing during massive Rust telemetry dumps.
+
 
 - [x] **149.** **[AUDIT FIX] Secure Shredder Directory Bypass:** The shredding loop in `clean_items` only shreds files at the root of a cache directory. Any deeply nested files within subdirectories are bypass-deleted via `remove_dir_all` without being shredded.
 - [x] **150.** **[AUDIT FIX] Leftover Cleaner Safety Bypass:** The `clean_leftovers` command lacks all safety bounds. It does not check for path traversal attacks (`..`), active process file locks, or restricted system paths (unlike `clean_items`).
