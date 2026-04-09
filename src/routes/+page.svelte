@@ -4,22 +4,10 @@
 	import { Dialog, DropdownMenu } from 'bits-ui';
 	import { fade } from 'svelte/transition';
 	import { 
-		HardDrive, 
-		Cpu, 
-		Search, 
-		Trash2, 
-		Activity, 
-		ShieldCheck,
-		AlertTriangle,
-		ArrowDownWideNarrow,
-		ArrowUpNarrowWide,
-		MoreHorizontal,
-		FolderOpen,
-		EyeOff,
-		Info,
-		XOctagon,
-		Globe,
-		Terminal
+		HardDrive, Cpu, Search, Trash2, Activity, ShieldCheck,
+		AlertTriangle, ArrowDownWideNarrow, ArrowUpNarrowWide,
+		MoreHorizontal, FolderOpen, EyeOff, Info, XOctagon,
+		Globe, Terminal, MemoryStick, Wifi
 	} from 'lucide-svelte';
 	
 	let totalSelectedSize = $derived(
@@ -29,13 +17,12 @@
 	);
 
 	let isConfirmModalOpen = $state(false);
-	
 	let sortKey = $state<'name' | 'category' | 'size'>('size');
 	let sortAsc = $state(false);
 
 	let sortedResults = $derived.by(() => {
 		if (cleanerStore.isScanning || cleanerStore.isCleaning) {
-			return cleanerStore.results; // Debounce heavy sorting while IPC floods the store
+			return cleanerStore.results;
 		}
 		return [...cleanerStore.results].sort((a, b) => {
 			const valA = a[sortKey];
@@ -50,13 +37,13 @@
 		});
 	});
 
-	let rowHeight = 32; // VSCode strict dense row height
+	let rowHeight = 36;
 	let scrollY = $state(0);
-	let viewportHeight = $state(600);
+	let viewportHeight = $state(400);
 	
 	let activeResults = $derived(sortedResults.filter(i => i.exists && i.size > 0).map((r, idx) => ({ ...r, virtualIndex: idx })));
-	let startIndex = $derived(Math.max(0, Math.floor(scrollY / rowHeight) - 8));
-	let endIndex = $derived(Math.min(activeResults.length, Math.ceil((scrollY + viewportHeight) / rowHeight) + 8));
+	let startIndex = $derived(Math.max(0, Math.floor(scrollY / rowHeight) - 5));
+	let endIndex = $derived(Math.min(activeResults.length, Math.ceil((scrollY + viewportHeight) / rowHeight) + 5));
 	let virtualResults = $derived(activeResults.slice(startIndex, endIndex));
 
 	function toggleSort(key: 'name' | 'category' | 'size') {
@@ -68,20 +55,13 @@
 		}
 	}
 
-	function formatBytes(bytes: number, decimals = 2) {
+	function formatBytes(bytes: number, decimals = 1) {
 		if (bytes === 0) return '0 B';
 		const k = 1024;
 		const dm = decimals < 0 ? 0 : decimals;
 		const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
 		const i = Math.floor(Math.log(bytes) / Math.log(k));
 		return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-	}
-
-	function truncatePath(path: string, maxLength: number = 75) {
-		if (path.length <= maxLength) return path;
-		const start = path.slice(0, Math.floor(maxLength / 2) - 3);
-		const end = path.slice(-Math.floor(maxLength / 2) + 2);
-		return `${start}...${end}`;
 	}
 
 	async function handleClean() {
@@ -116,191 +96,248 @@
 			isConfirmModalOpen = true;
 		}
 	}
+
+	let selectedCount = $derived(cleanerStore.results.filter(r => r.selected).length);
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="flex-1 flex flex-col overflow-hidden bg-background h-full text-foreground relative">
+<div class="flex-1 flex flex-col overflow-hidden bg-background h-full text-foreground">
 	
-	<!-- VSCode Editor Tab Bar -->
-	<div class="h-9 flex items-center bg-neutral-900 border-b border-border pl-2 shrink-0 select-none pt-1">
-		<div class="px-4 h-full flex items-center gap-2 bg-background border-x border-t border-border rounded-t-sm text-[13px] text-foreground font-medium relative top-px">
-			<HardDrive size={14} class="text-primary" />
-			<span>disk_analyzer.rs</span>
-		</div>
-	</div>
-
-	<!-- Top App Toolbar (Dense Console Version) -->
-	<div class="h-12 flex items-center justify-between px-4 border-b border-border/50 shrink-0 bg-background">
-		<div class="flex flex-col">
-			<span class="text-xs uppercase tracking-widest text-muted-foreground font-bold">Deep Space Purge</span>
-			<span class="text-[10px] text-primary/70 font-mono">Workspace directory mapping & secure extraction</span>
-		</div>
-
-		<div class="flex items-center gap-6 text-xs font-mono text-muted-foreground bg-neutral-900/50 border border-border/50 rounded px-3 py-1.5 shadow-inner">
-			{#if cleanerStore.stats}
-				<div class="flex items-center gap-2 border-r border-border/50 pr-4" title="Physical Storage">
-					<HardDrive size={12} class="text-primary"/> 
-					<span>{cleanerStore.stats.disk.used_human} / {cleanerStore.stats.disk.total_human}</span>
-				</div>
-				<div class="flex items-center gap-2 border-r border-border/50 pr-4" title="System Memory">
-					<Activity size={12} class="text-primary"/> 
-					<span>RAM: <NumberFlow value={cleanerStore.stats.memory.used / 1073741824} format={{ maximumFractionDigits: 1 }} />G</span>
-				</div>
-				<div class="flex items-center gap-2" title="Network Velocity">
-					<Globe size={12} class="text-primary"/> 
-					<span>{cleanerStore.stats.network.tx_human}↑ {cleanerStore.stats.network.rx_human}↓</span>
-				</div>
-			{/if}
-		</div>
-
-		<div class="flex items-center gap-3">
-			<button 
-				onclick={() => isConfirmModalOpen = true}
-				disabled={totalSelectedSize === 0 || cleanerStore.isCleaning || cleanerStore.isScanning}
-				class="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-3 py-1.5 rounded text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
-			>
-				<Trash2 class="w-3.5 h-3.5" />
-				SHRED {formatBytes(totalSelectedSize)}
-			</button>
-			<button 
-				onclick={() => cleanerStore.startScan()} 
-				disabled={cleanerStore.isScanning || cleanerStore.isCleaning}
-				class="bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary px-3 py-1.5 rounded text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
-			>
-				<Search class="w-3.5 h-3.5" />
-				{cleanerStore.isScanning ? 'MAPPING' : 'DEEP SCAN'}
-			</button>
-		</div>
-	</div>
-
-	<!-- Main Workspace -->
-	<div class="flex-1 min-h-0 flex flex-col bg-background relative shadow-inner font-mono text-[13px]">
-		<!-- Execution Banner -->
-		{#if cleanerStore.isScanning || cleanerStore.isCleaning}
-			<div class="w-full bg-neutral-900 border-b border-border flex flex-col pt-4 px-6 pb-5 relative" in:fade={{duration: 200}} out:fade={{duration: 200}}>
-				<div class="flex items-center justify-between mb-3 text-sm">
-					<div class="flex items-center gap-3">
-						<div class="w-2 h-2 rounded-full bg-primary animate-ping"></div>
-						<span class="text-foreground font-semibold">
-							{cleanerStore.isCleaning ? 'Executing SECURE_SHRED' : 'Executing TRACE_SCAN'}
-						</span>
-						<span class="text-muted-foreground ml-2 truncate max-w-xl text-[12px]">
-							{cleanerStore.progress?.current_location || 'Pending allocations...'}
-						</span>
-					</div>
-					<div class="flex gap-6 text-muted-foreground">
-						<span>Blocks: <span class="text-primary font-bold"><NumberFlow value={cleanerStore.progress?.found_count || 0} /></span></span>
-						<span>Size: <span class="text-foreground">{formatBytes(cleanerStore.progress?.total_size || 0)}</span></span>
-						<span>Time: {elapsedSec}s</span>
-						<span>[{cleanerStore.progress?.current || 0}/{cleanerStore.progress?.total || 0}]</span>
-					</div>
-				</div>
-				<div class="w-full h-1.5 bg-background rounded-full overflow-hidden shadow-inner">
-					<div class="h-full bg-primary transition-all duration-300 ease-out" style="width: {cleanerStore.progress?.percent || 0}%"></div>
-				</div>
+	<!-- ─── Compact Toolbar ─── -->
+	<div class="shrink-0 border-b border-border bg-card/50">
+		<!-- Row 1: Title + Actions -->
+		<div class="flex items-center justify-between gap-3 px-3 py-2">
+			<div class="flex items-center gap-2 min-w-0">
+				<HardDrive size={14} class="text-primary shrink-0" />
+				<span class="text-xs font-bold uppercase tracking-widest text-foreground truncate">Deep Space Purge</span>
+			</div>
+			
+			<div class="flex items-center gap-2 shrink-0">
 				<button 
-					class="absolute top-4 right-6 text-red-500 hover:text-red-400 bg-red-500/10 px-2 py-1 rounded-sm text-xs font-semibold flex items-center gap-1 transition-colors"
-					onclick={() => cleanerStore.abortScan()}
+					onclick={() => isConfirmModalOpen = true}
+					disabled={totalSelectedSize === 0 || cleanerStore.isCleaning || cleanerStore.isScanning}
+					class="bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 px-2.5 py-1 rounded text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 flex items-center gap-1.5"
+					title="Delete selected items"
+					aria-label="Shred selected items"
 				>
-					<XOctagon size={12} /> HALT
+					<Trash2 size={12} />
+					<span class="hidden sm:inline">SHRED</span>
+					{formatBytes(totalSelectedSize)}
+				</button>
+				<button 
+					onclick={() => cleanerStore.startScan()} 
+					disabled={cleanerStore.isScanning || cleanerStore.isCleaning}
+					class="bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary px-2.5 py-1 rounded text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 flex items-center gap-1.5"
+					title="Start deep scan"
+					aria-label="Start deep scan"
+				>
+					<Search size={12} />
+					{cleanerStore.isScanning ? 'SCANNING...' : 'DEEP SCAN'}
 				</button>
 			</div>
-		{/if}
+		</div>
 
-		<!-- Empty States -->
-		{#if !cleanerStore.isScanning && activeResults.length === 0}
-			<div class="flex-1 flex flex-col items-center justify-center text-muted-foreground p-10 text-center">
-				{#if cleanerStore.results.length === 0}
-					<Terminal class="w-10 h-10 mb-4 opacity-50" />
-					<h3 class="text-lg text-foreground mb-1">Awaiting Commands</h3>
-					<p class="text-sm max-w-sm">No data paths mapped. Press `Meta+Enter` or click Deep Scan to start telemetry.</p>
-				{:else}
-					<ShieldCheck class="w-10 h-10 mb-4 text-green-500/80" />
-					<h3 class="text-lg text-foreground mb-1">System Optimal</h3>
-					<p class="text-sm max-w-sm">Target branches are clean. No remaining orphan structures inside localized registries.</p>
+		<!-- Row 2: System stats (compact, wrapping) -->
+		{#if cleanerStore.stats}
+			<div class="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 pb-2 text-[11px] font-mono text-muted-foreground">
+				<div class="flex items-center gap-1.5" title="Disk usage">
+					<HardDrive size={10} class="text-primary/70" />
+					<span>{cleanerStore.stats.disk.used_human}<span class="opacity-50">/{cleanerStore.stats.disk.total_human}</span></span>
+				</div>
+				<div class="flex items-center gap-1.5" title="RAM usage">
+					<Activity size={10} class="text-primary/70" />
+					<span>RAM <NumberFlow value={cleanerStore.stats.memory.used / 1073741824} format={{ maximumFractionDigits: 1 }} />G</span>
+				</div>
+				<div class="flex items-center gap-1.5" title="Network I/O">
+					<Globe size={10} class="text-primary/70" />
+					<span>{cleanerStore.stats.network.tx_human}↑ {cleanerStore.stats.network.rx_human}↓</span>
+				</div>
+				{#if selectedCount > 0}
+					<div class="flex items-center gap-1.5 text-primary">
+						<span>{selectedCount} selected</span>
+					</div>
 				{/if}
 			</div>
-		{:else}
+		{/if}
+	</div>
+
+	<!-- ─── Scan Progress Banner ─── -->
+	{#if cleanerStore.isScanning || cleanerStore.isCleaning}
+		<div class="shrink-0 bg-card border-b border-border px-3 py-2.5 relative" in:fade={{duration: 150}} out:fade={{duration: 150}}>
+			<div class="flex items-center justify-between gap-3 mb-2 text-xs">
+				<div class="flex items-center gap-2 min-w-0">
+					<div class="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0"></div>
+					<span class="font-semibold text-foreground truncate">
+						{cleanerStore.isCleaning ? 'SECURE_SHRED' : 'TRACE_SCAN'}
+					</span>
+					<span class="text-muted-foreground truncate text-[11px] hidden sm:inline">
+						{cleanerStore.progress?.current_location || 'Initializing...'}
+					</span>
+				</div>
+				<div class="flex items-center gap-3 text-muted-foreground shrink-0 text-[11px] font-mono">
+					<span>Found: <span class="text-primary font-bold"><NumberFlow value={cleanerStore.progress?.found_count || 0} /></span></span>
+					<span class="hidden sm:inline">{formatBytes(cleanerStore.progress?.total_size || 0)}</span>
+					<span>{elapsedSec}s</span>
+					<button 
+						class="text-destructive hover:text-destructive/80 bg-destructive/10 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1"
+						onclick={() => cleanerStore.abortScan()}
+						title="Abort scan"
+						aria-label="Abort scan"
+					>
+						<XOctagon size={10} /> HALT
+					</button>
+				</div>
+			</div>
+			<div class="w-full h-1 bg-muted rounded-full overflow-hidden">
+				<div class="h-full bg-primary transition-all duration-300 ease-out rounded-full" style="width: {cleanerStore.progress?.percent || 0}%"></div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- ─── Main Content Area ─── -->
+	<div class="flex-1 min-h-0 flex flex-col relative">
+		
+		{#if !cleanerStore.isScanning && activeResults.length === 0}
+			<!-- Empty State -->
+			<div class="flex-1 flex flex-col items-center justify-center text-muted-foreground p-6 text-center">
+				{#if cleanerStore.results.length === 0}
+					<div class="w-16 h-16 rounded-2xl bg-card border border-border flex items-center justify-center mb-4">
+						<Terminal size={28} class="opacity-40" />
+					</div>
+					<h3 class="text-sm font-semibold text-foreground mb-1">Awaiting Commands</h3>
+					<p class="text-xs max-w-xs leading-relaxed">No data paths mapped. Click <strong>DEEP SCAN</strong> or press <kbd class="px-1 py-0.5 bg-card border border-border rounded text-[10px]">Ctrl+Enter</kbd> to begin.</p>
+				{:else}
+					<div class="w-16 h-16 rounded-2xl bg-success/10 border border-success/20 flex items-center justify-center mb-4">
+						<ShieldCheck size={28} class="text-success" />
+					</div>
+					<h3 class="text-sm font-semibold text-foreground mb-1">System Optimal</h3>
+					<p class="text-xs max-w-xs leading-relaxed">All target paths are clean. No remaining orphan structures.</p>
+				{/if}
+			</div>
+		{:else if activeResults.length > 0}
 			<!-- Table Header -->
-			<div class="bg-neutral-900 border-b border-border sticky top-0 z-20 grid grid-cols-[2.5rem_minmax(0,1fr)_10rem_6rem_2.5rem] items-center text-[11px] font-bold tracking-wider text-muted-foreground uppercase h-8">
-				<div class="px-2 border-r border-border/40 h-full flex items-center justify-center">
+			<div class="shrink-0 bg-card/80 border-b border-border sticky top-0 z-20 flex items-center text-[10px] font-bold tracking-wider text-muted-foreground uppercase h-7 select-none">
+				<div class="w-9 shrink-0 flex items-center justify-center border-r border-border/30 h-full">
 					<input 
 						type="checkbox" 
 						aria-label="Select all targets"
-						class="rounded bg-background text-primary border border-border h-3 w-3 focus:ring-0 focus:ring-offset-0 focus:border-primary disabled:opacity-50"
+						class="rounded bg-background text-primary border border-border h-3 w-3 focus:ring-0 focus:ring-offset-0 disabled:opacity-40"
 						disabled={cleanerStore.isScanning || cleanerStore.isCleaning}
 						checked={cleanerStore.results.length > 0 && cleanerStore.results.every(r => r.selected)}
 						onchange={(e) => cleanerStore.toggleAll(e.currentTarget.checked)}
 					/>
 				</div>
-				<button disabled={cleanerStore.isScanning || cleanerStore.isCleaning} class="px-3 h-full hover:text-foreground text-left border-r border-border/40 focus:outline-none flex items-center gap-2 group transition-colors" onclick={() => toggleSort('name')}>
-					TARGET PATH {#if sortKey === 'name'} <span class="text-primary group-hover:opacity-100 opacity-80">{#if sortAsc}<ArrowUpNarrowWide size={12}/>{:else}<ArrowDownWideNarrow size={12}/>{/if}</span> {/if}
+				<button 
+					disabled={cleanerStore.isScanning || cleanerStore.isCleaning} 
+					class="flex-1 min-w-0 px-2 h-full hover:text-foreground text-left border-r border-border/30 focus:outline-none flex items-center gap-1 transition-colors"
+					onclick={() => toggleSort('name')}
+					aria-label="Sort by target path"
+				>
+					NAME
+					{#if sortKey === 'name'}
+						<span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={10}/>{:else}<ArrowDownWideNarrow size={10}/>{/if}</span>
+					{/if}
 				</button>
-				<button disabled={cleanerStore.isScanning || cleanerStore.isCleaning} class="px-3 h-full hover:text-foreground text-left border-r border-border/40 focus:outline-none flex items-center gap-2 group transition-colors" onclick={() => toggleSort('category')}>
-					DESCRIPTOR {#if sortKey === 'category'} <span class="text-primary group-hover:opacity-100 opacity-80">{#if sortAsc}<ArrowUpNarrowWide size={12}/>{:else}<ArrowDownWideNarrow size={12}/>{/if}</span> {/if}
+				<button 
+					disabled={cleanerStore.isScanning || cleanerStore.isCleaning} 
+					class="w-24 shrink-0 px-2 h-full hover:text-foreground text-left border-r border-border/30 focus:outline-none flex items-center gap-1 transition-colors hidden md:flex"
+					onclick={() => toggleSort('category')}
+					aria-label="Sort by category"
+				>
+					TYPE
+					{#if sortKey === 'category'}
+						<span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={10}/>{:else}<ArrowDownWideNarrow size={10}/>{/if}</span>
+					{/if}
 				</button>
-				<button disabled={cleanerStore.isScanning || cleanerStore.isCleaning} class="px-3 h-full hover:text-foreground text-right border-r border-border/40 focus:outline-none flex items-center justify-end gap-2 group transition-colors" onclick={() => toggleSort('size')}>
-					BLOCK_SIZE {#if sortKey === 'size'} <span class="text-primary group-hover:opacity-100 opacity-80">{#if sortAsc}<ArrowUpNarrowWide size={12}/>{:else}<ArrowDownWideNarrow size={12}/>{/if}</span> {/if}
+				<button 
+					disabled={cleanerStore.isScanning || cleanerStore.isCleaning} 
+					class="w-20 shrink-0 px-2 h-full hover:text-foreground text-right border-r border-border/30 focus:outline-none flex items-center justify-end gap-1 transition-colors"
+					onclick={() => toggleSort('size')}
+					aria-label="Sort by size"
+				>
+					SIZE
+					{#if sortKey === 'size'}
+						<span class="text-primary">{#if sortAsc}<ArrowUpNarrowWide size={10}/>{:else}<ArrowDownWideNarrow size={10}/>{/if}</span>
+					{/if}
 				</button>
-				<div class="h-full flex items-center justify-center px-2"></div>
+				<div class="w-8 shrink-0"></div>
 			</div>
 
 			<!-- Virtual Scroll Area -->
-			<div class="flex-1 overflow-auto relative bg-background" onscroll={(e) => scrollY = e.currentTarget.scrollTop} bind:clientHeight={viewportHeight}>
+			<div 
+				class="flex-1 overflow-auto relative" 
+				onscroll={(e) => scrollY = e.currentTarget.scrollTop} 
+				bind:clientHeight={viewportHeight}
+			>
 				<div class="absolute w-full" style="height: {activeResults.length * rowHeight}px;">
 					{#each virtualResults as item (item.id)}
-						<div class="absolute w-full hover:bg-neutral-800/80 transition-colors grid grid-cols-[2.5rem_minmax(0,1fr)_10rem_6rem_2.5rem] items-center border-b border-border/20 group" style="top: {item.virtualIndex * rowHeight}px; height: {rowHeight}px;">
-							
-							<div class="px-2 border-r border-border/10 justify-center flex">
+						<div 
+							class="absolute w-full hover:bg-accent/50 transition-colors flex items-center border-b border-border/10 group cursor-default" 
+							style="top: {item.virtualIndex * rowHeight}px; height: {rowHeight}px;"
+						>
+							<!-- Checkbox -->
+							<div class="w-9 shrink-0 flex items-center justify-center h-full">
 								<input 
 									type="checkbox" 
-									aria-label="Select row"
+									aria-label="Select {item.name}"
 									class="rounded bg-background text-primary border border-border h-3 w-3 focus:ring-0"
 									checked={item.selected}
 									onchange={(e) => cleanerStore.toggleItem(item.id, e.currentTarget.checked)}
 								/>
 							</div>
 							
-							<div class="px-3 border-r border-border/10 flex flex-col justify-center overflow-hidden h-full">
-								<div class="flex items-baseline gap-2">
-									<span class="font-medium text-foreground truncate">{item.name}</span>
-									<span class="text-muted-foreground text-[10px] truncate opacity-50 font-sans" title={item.path}>{truncatePath(item.path)}</span>
-								</div>
+							<!-- Name + Path -->
+							<div class="flex-1 min-w-0 px-2 flex items-center gap-2 h-full overflow-hidden">
+								<span class="font-medium text-foreground text-xs truncate shrink-0 max-w-[40%]">{item.name}</span>
+								<span class="text-muted-foreground text-[10px] truncate opacity-60" title={item.path}>{item.path}</span>
 							</div>
 							
-							<div class="px-3 border-r border-border/10 flex items-center h-full">
-								<span class="text-muted-foreground capitalize text-[11px] flex items-center gap-1.5 font-sans font-medium">
+							<!-- Category (hidden on small) -->
+							<div class="w-24 shrink-0 px-2 items-center h-full hidden md:flex">
+								<span class="text-[10px] flex items-center gap-1.5 font-medium text-muted-foreground">
 									{#if item.category.toLowerCase().includes('privacy')}
-										<div class="w-1.5 h-1.5 rounded-full bg-purple-500/80 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+										<div class="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
 									{:else if item.category.toLowerCase().includes('system')}
-										<div class="w-1.5 h-1.5 rounded-full bg-neutral-500"></div>
+										<div class="w-1.5 h-1.5 rounded-full bg-muted-foreground"></div>
 									{:else}
-										<div class="w-1.5 h-1.5 rounded-full bg-primary/80 shadow-[0_0_8px_rgba(56,189,248,0.5)]"></div>
+										<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
 									{/if}
-									{item.category}
+									<span class="truncate">{item.category}</span>
 								</span>
 							</div>
 							
-							<div class="px-3 border-r border-border/10 h-full flex items-center justify-end text-primary/80 font-medium">
+							<!-- Size -->
+							<div class="w-20 shrink-0 px-2 flex items-center justify-end h-full text-xs text-primary font-medium font-mono">
 								{item.size_human}
 							</div>
 							
-							<div class="h-full flex items-center justify-center">
+							<!-- Actions -->
+							<div class="w-8 shrink-0 flex items-center justify-center h-full">
 								<DropdownMenu.Root>
-									<DropdownMenu.Trigger class="text-muted-foreground hover:bg-muted p-1 rounded transition-colors" disabled={cleanerStore.isScanning || cleanerStore.isCleaning}>
-										<MoreHorizontal size={14} />
+									<DropdownMenu.Trigger 
+										class="text-muted-foreground hover:text-foreground hover:bg-muted p-1 rounded transition-colors opacity-0 group-hover:opacity-100" 
+										disabled={cleanerStore.isScanning || cleanerStore.isCleaning}
+										aria-label="Row actions for {item.name}"
+									>
+										<MoreHorizontal size={12} />
 									</DropdownMenu.Trigger>
-									<DropdownMenu.Content class="w-48 bg-card border border-border rounded-md shadow-2xl py-1 z-50 overflow-hidden font-sans">
-										<DropdownMenu.Item class="px-3 py-2 text-[13px] text-neutral-300 hover:bg-primary/20 hover:text-primary cursor-pointer flex items-center gap-2 outline-none" onclick={() => cleanerStore.openFolder(item.path)}>
-											<FolderOpen size={14} /> Open Directory
+									<DropdownMenu.Content class="w-44 bg-card border border-border rounded-md shadow-xl py-1 z-50 text-xs">
+										<DropdownMenu.Item 
+											class="px-3 py-1.5 hover:bg-accent hover:text-accent-foreground cursor-pointer flex items-center gap-2 outline-none" 
+											onclick={() => cleanerStore.openFolder(item.path)}
+										>
+											<FolderOpen size={12} /> Open Directory
 										</DropdownMenu.Item>
-										<DropdownMenu.Item class="px-3 py-2 text-[13px] text-neutral-300 hover:bg-neutral-800 hover:text-foreground cursor-pointer flex items-center gap-2 outline-none" onclick={() => cleanerStore.ignoreItem(item.id)}>
-											<EyeOff size={14} /> Exclude
+										<DropdownMenu.Item 
+											class="px-3 py-1.5 hover:bg-accent hover:text-accent-foreground cursor-pointer flex items-center gap-2 outline-none" 
+											onclick={() => cleanerStore.ignoreItem(item.id)}
+										>
+											<EyeOff size={12} /> Exclude
 										</DropdownMenu.Item>
 										<DropdownMenu.Separator class="h-px bg-border my-1" />
-										<DropdownMenu.Item class="px-3 py-2 text-[13px] text-neutral-300 hover:bg-neutral-800 hover:text-foreground cursor-pointer flex items-center gap-2 outline-none">
-											<Info size={14} /> Stat Inspector
+										<DropdownMenu.Item class="px-3 py-1.5 hover:bg-accent hover:text-accent-foreground cursor-pointer flex items-center gap-2 outline-none">
+											<Info size={12} /> Details
 										</DropdownMenu.Item>
 									</DropdownMenu.Content>
 								</DropdownMenu.Root>
@@ -309,31 +346,41 @@
 					{/each}
 				</div>
 			</div>
+
+			<!-- Status Bar -->
+			<div class="shrink-0 h-6 bg-card/50 border-t border-border flex items-center justify-between px-3 text-[10px] text-muted-foreground font-mono select-none">
+				<span>{activeResults.length} items • {selectedCount} selected</span>
+				<span>{formatBytes(totalSelectedSize)} marked for removal</span>
+			</div>
 		{/if}
 	</div>
 </div>
 
+<!-- ─── Confirm Modal ─── -->
 <Dialog.Root bind:open={isConfirmModalOpen}>
 	<Dialog.Portal>
-		<Dialog.Overlay class="fixed inset-0 z-50 bg-background/80 backdrop-blur-[2px] transition-all" />
-		<Dialog.Content class="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-card border border-border p-6 rounded-lg shadow-xl outline-none font-mono text-sm">
-			<div class="flex items-start gap-4">
-				<AlertTriangle class="text-red-500 w-5 h-5 shrink-0 mt-1" />
-				<div>
-					<Dialog.Title class="text-base font-bold text-foreground uppercase tracking-wider">Execute Purge Phase</Dialog.Title>
-					<Dialog.Description class="text-muted-foreground mt-3 leading-relaxed">
-						WARNING: About to terminate <strong>{cleanerStore.results.filter(r => r.selected).length}</strong> node(s) recovering <strong>{formatBytes(totalSelectedSize)}</strong> memory.
-						This routine bypasses standard kernel recycling and forces permanent block disposal. Proceed?
+		<Dialog.Overlay class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" />
+		<Dialog.Content class="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-md bg-card border border-border p-5 rounded-lg shadow-2xl outline-none">
+			<div class="flex items-start gap-3">
+				<div class="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+					<AlertTriangle class="text-destructive" size={18} />
+				</div>
+				<div class="min-w-0">
+					<Dialog.Title class="text-sm font-bold text-foreground">Confirm Purge</Dialog.Title>
+					<Dialog.Description class="text-xs text-muted-foreground mt-2 leading-relaxed">
+						This will permanently delete <strong class="text-foreground">{selectedCount}</strong> item(s) 
+						totaling <strong class="text-foreground">{formatBytes(totalSelectedSize)}</strong>. 
+						This action cannot be undone.
 					</Dialog.Description>
 				</div>
 			</div>
-			<div class="flex justify-end gap-3 mt-8">
-				<Dialog.Close class="px-4 py-2 border border-border hover:bg-neutral-800 rounded text-foreground font-semibold transition-colors">ABORT</Dialog.Close>
+			<div class="flex justify-end gap-2 mt-5">
+				<Dialog.Close class="px-3 py-1.5 border border-border hover:bg-accent rounded text-xs font-medium text-foreground transition-colors">Cancel</Dialog.Close>
 				<button 
-					class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded font-bold shadow-md shadow-red-500/10 transition-all active:scale-95" 
+					class="px-3 py-1.5 bg-destructive hover:bg-destructive/90 text-white rounded text-xs font-bold transition-all active:scale-95" 
 					onclick={confirmClean}
 				>
-					S1: SHRED
+					Delete {selectedCount} Items
 				</button>
 			</div>
 		</Dialog.Content>
