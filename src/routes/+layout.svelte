@@ -15,6 +15,7 @@
   let { children } = $props();
   let isBooted = $state(false);
   let hasFullDiskAccess = $state(true);
+  let showCloseConfirm = $state(false);
 
   onMount(async () => {
     try {
@@ -51,7 +52,7 @@
             <button onclick={() => getCurrentWindow().toggleMaximize()} class="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-foreground transition-colors" title="Maximize" aria-label="Maximize window">
                 <Square size={14} />
             </button>
-            <button onclick={() => getCurrentWindow().close()} class="p-1.5 rounded-md text-neutral-400 hover:bg-red-500 hover:text-white transition-colors" title="Close" aria-label="Close window">
+            <button onclick={() => showCloseConfirm = true} class="p-1.5 rounded-md text-neutral-400 hover:bg-red-500 hover:text-white transition-colors" title="Close" aria-label="Close window">
                 <X size={14} />
             </button>
         </div>
@@ -101,5 +102,18 @@
     </div>
   {/if}
 </div>
+
+{#if showCloseConfirm}
+<div class="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-card border border-border shadow-2xl rounded-lg p-6 max-w-sm w-full flex flex-col gap-4">
+    <h3 class="text-lg font-semibold text-foreground">Exit Qleaner?</h3>
+    <p class="text-sm text-neutral-400">Are you sure you want to close the application? Any ongoing system scans will be terminated.</p>
+    <div class="flex justify-end gap-2 mt-4">
+      <button onclick={() => showCloseConfirm = false} class="px-4 py-2 text-sm rounded-md bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-colors font-medium">Cancel</button>
+      <button onclick={() => getCurrentWindow().close()} class="px-4 py-2 text-sm rounded-md bg-red-600 hover:bg-red-500 text-white transition-colors font-medium">Close App</button>
+    </div>
+  </div>
+</div>
+{/if}
 
 </ParaglideJS>
