@@ -32,7 +32,7 @@
         <Settings class="w-8 h-8 text-primary" />
         Preferences
       </h1>
-      <p class="text-neutral-400 mt-2">Configure application behavior, UI parameters, and system integrations.</p>
+      <p class="text-muted-foreground mt-2">Configure application behavior, UI parameters, and system integrations.</p>
     </div>
   </header>
 
@@ -44,14 +44,14 @@
           <Monitor class="text-primary w-6 h-6" />
           <h3 class="text-xl font-semibold text-foreground">Appearance</h3>
         </div>
-        <div class="flex items-center justify-between p-4 bg-neutral-900/50 rounded-lg">
+        <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
           <div>
             <p class="font-medium">Theme Mode</p>
-            <p class="text-sm text-neutral-400">Toggle dark and light aesthetics</p>
+            <p class="text-sm text-muted-foreground">Toggle dark and light aesthetics</p>
           </div>
           <button 
             onclick={() => themeState.toggle()}
-            class="p-3 bg-neutral-800 hover:bg-neutral-700 text-foreground rounded-lg transition-colors flex items-center gap-2"
+            class="p-3 bg-background border border-border hover:bg-muted text-foreground rounded-lg transition-colors flex items-center gap-2"
           >
             {#if themeState.isDark}
               <Sun size={18} /> Light
@@ -67,13 +67,13 @@
           <Languages class="text-primary w-6 h-6" />
           <h3 class="text-xl font-semibold text-foreground">Localization</h3>
         </div>
-        <div class="flex items-center justify-between p-4 bg-neutral-900/50 rounded-lg">
+        <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
           <div>
             <p class="font-medium">Language</p>
-            <p class="text-sm text-neutral-400">Select application interface language</p>
+            <p class="text-sm text-muted-foreground">Select application interface language</p>
           </div>
           <select 
-            class="bg-neutral-800 border-none text-foreground py-2 px-4 rounded-lg focus:ring-1 focus:ring-primary outline-none"
+            class="bg-background border border-border text-foreground py-2 px-4 rounded-lg focus:ring-1 focus:ring-primary outline-none"
             value={selectedLang}
             onchange={handleLangChange}
           >
@@ -92,13 +92,13 @@
           <h3 class="text-xl font-semibold text-foreground">Permissions</h3>
         </div>
         <div class="flex flex-col gap-3">
-          <div class="flex items-center justify-between p-4 bg-neutral-900/50 rounded-lg">
+          <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <span class="font-medium">File System Access</span>
             <span class="px-3 py-1 bg-green-500/20 text-green-500 text-sm font-medium rounded-full flex items-center gap-1">
               <CheckCircle2 size={14} /> Granted
             </span>
           </div>
-          <div class="flex items-center justify-between p-4 bg-neutral-900/50 rounded-lg">
+          <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
             <span class="font-medium">Network Access</span>
             <span class="px-3 py-1 bg-red-500/20 text-red-500 text-sm font-medium rounded-full">
               Restricted
@@ -112,14 +112,14 @@
           <Lock class="text-primary w-6 h-6" />
           <h3 class="text-xl font-semibold text-foreground">Deletion Security</h3>
         </div>
-        <div class="flex items-center justify-between p-4 bg-neutral-900/50 rounded-lg">
+        <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
           <div>
             <p class="font-medium">DoD 5220.22-M Shredding</p>
-            <p class="text-sm text-neutral-400">Multi-pass cryptographic overwrite bounds</p>
+            <p class="text-sm text-muted-foreground">Multi-pass cryptographic overwrite bounds</p>
           </div>
           <button 
             onclick={() => settingsStore.toggleShredding()}
-            class="p-3 bg-neutral-800 hover:bg-neutral-700 text-foreground rounded-lg transition-colors flex items-center gap-2 {settingsStore.useShredding ? 'text-red-500 border border-red-500/50' : ''}"
+            class="p-3 bg-background border border-border hover:bg-muted text-foreground rounded-lg transition-colors flex items-center gap-2 {settingsStore.useShredding ? 'text-red-500 border-red-500/50' : ''}"
           >
             {#if settingsStore.useShredding}
               <CheckCircle2 size={18} /> Enabled
@@ -135,17 +135,17 @@
           <HandMetal class="text-primary w-6 h-6" />
           <h3 class="text-xl font-semibold text-foreground">OS Environment</h3>
         </div>
-        <div class="p-4 bg-neutral-900/50 rounded-lg flex flex-col gap-2">
+        <div class="p-4 bg-muted/50 rounded-lg flex flex-col gap-2">
           <div class="flex justify-between text-sm">
-            <span class="text-neutral-400">Architecture</span>
+            <span class="text-muted-foreground">Architecture</span>
             <span class="font-medium font-mono text-foreground">{arch}</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-neutral-400">CPU Thread Count</span>
+            <span class="text-muted-foreground">CPU Thread Count</span>
             <span class="font-medium font-mono text-foreground">{cleanerStore.stats?.cpu_count || '--'} Cores</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-neutral-400">Total System Memory</span>
+            <span class="text-muted-foreground">Total System Memory</span>
             <span class="font-medium font-mono text-foreground">{cleanerStore.stats?.memory.total_human || '--'}</span>
           </div>
         </div>
