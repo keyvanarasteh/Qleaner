@@ -5,6 +5,7 @@
   import '../app.css';
   import NeuralBootSequence from '$lib/components/ui/NeuralBootSequence.svelte';
   import Sidebar from '$lib/components/ui/Sidebar.svelte';
+  import LogTerminal from '$lib/components/ui/LogTerminal.svelte';
   import { themeState } from '$lib/stores/theme.svelte';
   import { Sun, Moon, Minus, Square, X, Monitor, ShieldAlert } from 'lucide-svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -78,18 +79,25 @@
       {/if}
       <!-- Floating Theme Toggle -->
       <button 
-        class="absolute top-6 right-6 z-[100] p-2 rounded-full shadow-md bg-card border border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-300"
+        class="absolute top-4 right-4 z-[100] p-1.5 rounded bg-transparent text-neutral-400 hover:text-foreground transition-all duration-300 pointer-events-auto"
         onclick={() => themeState.toggle()}
         aria-label="Toggle Theme"
         title="Toggle Light/Dark Mode"
       >
         {#if themeState.isDark}
-          <Sun size={20} />
+          <Sun size={18} />
         {:else}
-          <Moon size={20} />
+          <Moon size={18} />
         {/if}
       </button>
-      {@render children()}
+      
+      <!-- Editor Zone -->
+      <main class="flex-1 flex flex-col min-h-0 relative overflow-hidden">
+        {@render children()}
+      </main>
+      
+      <!-- Bottom Console Panel -->
+      <LogTerminal />
     </div>
   {/if}
 </div>

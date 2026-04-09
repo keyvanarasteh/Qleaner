@@ -50,7 +50,7 @@
 		});
 	});
 
-	let rowHeight = 44; // Pro-density row height
+	let rowHeight = 32; // VSCode strict dense row height
 	let scrollY = $state(0);
 	let viewportHeight = $state(600);
 	
@@ -120,57 +120,62 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="flex-1 flex flex-col p-6 overflow-hidden bg-background h-full text-foreground">
+<div class="flex-1 flex flex-col overflow-hidden bg-background h-full text-foreground relative">
 	
-	<!-- Top App Menu & Metrics (Dense Version) -->
-	<div class="flex flex-col md:flex-row md:items-end justify-between border-b border-border/50 pb-5 mb-5 gap-4">
-		<div>
-			<h1 class="text-2xl font-semibold tracking-tight flex items-center gap-2">
-				<Terminal class="w-5 h-5 text-primary" />
-				Qleaner Core Console
-			</h1>
-			<p class="text-muted-foreground mt-1 text-sm font-mono">Workspace directory mapping & secure extraction</p>
+	<!-- VSCode Editor Tab Bar -->
+	<div class="h-9 flex items-center bg-neutral-900 border-b border-border pl-2 shrink-0 select-none pt-1">
+		<div class="px-4 h-full flex items-center gap-2 bg-background border-x border-t border-border rounded-t-sm text-[13px] text-foreground font-medium relative top-px">
+			<HardDrive size={14} class="text-primary" />
+			<span>disk_analyzer.rs</span>
+		</div>
+	</div>
+
+	<!-- Top App Toolbar (Dense Console Version) -->
+	<div class="h-12 flex items-center justify-between px-4 border-b border-border/50 shrink-0 bg-background">
+		<div class="flex flex-col">
+			<span class="text-xs uppercase tracking-widest text-muted-foreground font-bold">Deep Space Purge</span>
+			<span class="text-[10px] text-primary/70 font-mono">Workspace directory mapping & secure extraction</span>
 		</div>
 
-		<div class="flex items-center gap-6 text-sm font-mono text-muted-foreground border border-border/50 bg-card rounded-md px-4 py-2">
+		<div class="flex items-center gap-6 text-xs font-mono text-muted-foreground bg-neutral-900/50 border border-border/50 rounded px-3 py-1.5 shadow-inner">
 			{#if cleanerStore.stats}
-				<div class="flex items-center gap-2 border-r border-border/50 pr-4">
-					<HardDrive size={14} class="text-primary"/> 
+				<div class="flex items-center gap-2 border-r border-border/50 pr-4" title="Physical Storage">
+					<HardDrive size={12} class="text-primary"/> 
 					<span>{cleanerStore.stats.disk.used_human} / {cleanerStore.stats.disk.total_human}</span>
 				</div>
-				<div class="flex items-center gap-2 border-r border-border/50 pr-4">
-					<Activity size={14} class="text-primary"/> 
-					<span>RAM: <NumberFlow value={cleanerStore.stats.memory.used / 1073741824} format={{ maximumFractionDigits: 1 }} />GB</span>
+				<div class="flex items-center gap-2 border-r border-border/50 pr-4" title="System Memory">
+					<Activity size={12} class="text-primary"/> 
+					<span>RAM: <NumberFlow value={cleanerStore.stats.memory.used / 1073741824} format={{ maximumFractionDigits: 1 }} />G</span>
 				</div>
-				<div class="flex items-center gap-2">
-					<Globe size={14} class="text-primary"/> 
+				<div class="flex items-center gap-2" title="Network Velocity">
+					<Globe size={12} class="text-primary"/> 
 					<span>{cleanerStore.stats.network.tx_human}↑ {cleanerStore.stats.network.rx_human}↓</span>
 				</div>
 			{/if}
 		</div>
 
-		<div class="flex gap-3">
+		<div class="flex items-center gap-3">
 			<button 
 				onclick={() => isConfirmModalOpen = true}
 				disabled={totalSelectedSize === 0 || cleanerStore.isCleaning || cleanerStore.isScanning}
-				class="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-4 py-2 rounded-md text-sm font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+				class="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-3 py-1.5 rounded text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
 			>
-				<Trash2 class="w-4 h-4" />
-				Shred {formatBytes(totalSelectedSize)}
+				<Trash2 class="w-3.5 h-3.5" />
+				SHRED {formatBytes(totalSelectedSize)}
 			</button>
 			<button 
 				onclick={() => cleanerStore.startScan()} 
 				disabled={cleanerStore.isScanning || cleanerStore.isCleaning}
-				class="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-sm font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+				class="bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary px-3 py-1.5 rounded text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
 			>
-				<Search class="w-4 h-4" />
-				{cleanerStore.isScanning ? 'Mapping...' : 'Deep Scan'}
+				<Search class="w-3.5 h-3.5" />
+				{cleanerStore.isScanning ? 'MAPPING' : 'DEEP SCAN'}
 			</button>
 		</div>
 	</div>
 
 	<!-- Main Workspace -->
-	<div class="flex-1 min-h-0 flex flex-col bg-card border border-border rounded-lg overflow-hidden relative shadow-sm font-mono text-[13px]">
+	<div class="flex-1 min-h-0 flex flex-col bg-background relative shadow-inner font-mono text-[13px]">
 		<!-- Execution Banner -->
 		{#if cleanerStore.isScanning || cleanerStore.isCleaning}
 			<div class="w-full bg-neutral-900 border-b border-border flex flex-col pt-4 px-6 pb-5 relative" in:fade={{duration: 200}} out:fade={{duration: 200}}>
@@ -218,8 +223,8 @@
 			</div>
 		{:else}
 			<!-- Table Header -->
-			<div class="bg-muted/30 sticky top-0 z-20 grid grid-cols-[3rem_minmax(0,1fr)_12rem_7rem_3rem] border-b border-border items-center">
-				<div class="px-4 py-2 border-r border-border/40 h-full flex items-center justify-center">
+			<div class="bg-neutral-900 border-b border-border sticky top-0 z-20 grid grid-cols-[2.5rem_minmax(0,1fr)_10rem_6rem_2.5rem] items-center text-[11px] font-bold tracking-wider text-muted-foreground uppercase h-8">
+				<div class="px-2 border-r border-border/40 h-full flex items-center justify-center">
 					<input 
 						type="checkbox" 
 						aria-label="Select all targets"
@@ -229,25 +234,25 @@
 						onchange={(e) => cleanerStore.toggleAll(e.currentTarget.checked)}
 					/>
 				</div>
-				<button disabled={cleanerStore.isScanning || cleanerStore.isCleaning} class="px-4 py-2 h-full text-muted-foreground hover:text-foreground text-left border-r border-border/40 focus:outline-none flex items-center gap-2 group" onclick={() => toggleSort('name')}>
+				<button disabled={cleanerStore.isScanning || cleanerStore.isCleaning} class="px-3 h-full hover:text-foreground text-left border-r border-border/40 focus:outline-none flex items-center gap-2 group transition-colors" onclick={() => toggleSort('name')}>
 					TARGET PATH {#if sortKey === 'name'} <span class="text-primary group-hover:opacity-100 opacity-80">{#if sortAsc}<ArrowUpNarrowWide size={12}/>{:else}<ArrowDownWideNarrow size={12}/>{/if}</span> {/if}
 				</button>
-				<button disabled={cleanerStore.isScanning || cleanerStore.isCleaning} class="px-4 py-2 h-full text-muted-foreground hover:text-foreground text-left border-r border-border/40 focus:outline-none flex items-center gap-2 group" onclick={() => toggleSort('category')}>
+				<button disabled={cleanerStore.isScanning || cleanerStore.isCleaning} class="px-3 h-full hover:text-foreground text-left border-r border-border/40 focus:outline-none flex items-center gap-2 group transition-colors" onclick={() => toggleSort('category')}>
 					DESCRIPTOR {#if sortKey === 'category'} <span class="text-primary group-hover:opacity-100 opacity-80">{#if sortAsc}<ArrowUpNarrowWide size={12}/>{:else}<ArrowDownWideNarrow size={12}/>{/if}</span> {/if}
 				</button>
-				<button disabled={cleanerStore.isScanning || cleanerStore.isCleaning} class="px-4 py-2 h-full text-muted-foreground hover:text-foreground text-right border-r border-border/40 focus:outline-none flex items-center justify-end gap-2 group" onclick={() => toggleSort('size')}>
+				<button disabled={cleanerStore.isScanning || cleanerStore.isCleaning} class="px-3 h-full hover:text-foreground text-right border-r border-border/40 focus:outline-none flex items-center justify-end gap-2 group transition-colors" onclick={() => toggleSort('size')}>
 					BLOCK_SIZE {#if sortKey === 'size'} <span class="text-primary group-hover:opacity-100 opacity-80">{#if sortAsc}<ArrowUpNarrowWide size={12}/>{:else}<ArrowDownWideNarrow size={12}/>{/if}</span> {/if}
 				</button>
-				<div class="h-full flex items-center justify-center text-muted-foreground px-2"></div>
+				<div class="h-full flex items-center justify-center px-2"></div>
 			</div>
 
 			<!-- Virtual Scroll Area -->
 			<div class="flex-1 overflow-auto relative bg-background" onscroll={(e) => scrollY = e.currentTarget.scrollTop} bind:clientHeight={viewportHeight}>
 				<div class="absolute w-full" style="height: {activeResults.length * rowHeight}px;">
 					{#each virtualResults as item (item.id)}
-						<div class="absolute w-full hover:bg-neutral-900/60 transition-colors grid grid-cols-[3rem_minmax(0,1fr)_12rem_7rem_3rem] items-center border-b border-border/30 group" style="top: {item.virtualIndex * rowHeight}px; height: {rowHeight}px;">
+						<div class="absolute w-full hover:bg-neutral-800/80 transition-colors grid grid-cols-[2.5rem_minmax(0,1fr)_10rem_6rem_2.5rem] items-center border-b border-border/20 group" style="top: {item.virtualIndex * rowHeight}px; height: {rowHeight}px;">
 							
-							<div class="px-4 border-r border-border/10 justify-center flex">
+							<div class="px-2 border-r border-border/10 justify-center flex">
 								<input 
 									type="checkbox" 
 									aria-label="Select row"
@@ -257,25 +262,27 @@
 								/>
 							</div>
 							
-							<div class="px-4 border-r border-border/10 flex flex-col justify-center overflow-hidden h-full">
-								<span class="font-bold text-foreground/90 truncate">{item.name}</span>
-								<span class="text-muted-foreground text-[11px] truncate mt-0.5 leading-none opacity-70" title={item.path}>{truncatePath(item.path)}</span>
+							<div class="px-3 border-r border-border/10 flex flex-col justify-center overflow-hidden h-full">
+								<div class="flex items-baseline gap-2">
+									<span class="font-medium text-foreground truncate">{item.name}</span>
+									<span class="text-muted-foreground text-[10px] truncate opacity-50 font-sans" title={item.path}>{truncatePath(item.path)}</span>
+								</div>
 							</div>
 							
-							<div class="px-4 border-r border-border/10 flex items-center h-full">
-								<span class="text-muted-foreground capitalize text-[12px] flex items-center gap-2">
+							<div class="px-3 border-r border-border/10 flex items-center h-full">
+								<span class="text-muted-foreground capitalize text-[11px] flex items-center gap-1.5 font-sans font-medium">
 									{#if item.category.toLowerCase().includes('privacy')}
-										<div class="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+										<div class="w-1.5 h-1.5 rounded-full bg-purple-500/80 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
 									{:else if item.category.toLowerCase().includes('system')}
 										<div class="w-1.5 h-1.5 rounded-full bg-neutral-500"></div>
 									{:else}
-										<div class="w-1.5 h-1.5 rounded-full bg-primary text-primary"></div>
+										<div class="w-1.5 h-1.5 rounded-full bg-primary/80 shadow-[0_0_8px_rgba(56,189,248,0.5)]"></div>
 									{/if}
 									{item.category}
 								</span>
 							</div>
 							
-							<div class="px-4 border-r border-border/10 h-full flex items-center justify-end font-semibold text-foreground/80">
+							<div class="px-3 border-r border-border/10 h-full flex items-center justify-end text-primary/80 font-medium">
 								{item.size_human}
 							</div>
 							

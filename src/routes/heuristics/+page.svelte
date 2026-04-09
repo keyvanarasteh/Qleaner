@@ -103,19 +103,27 @@
   });
 </script>
 
-<div class="h-full overflow-y-auto bg-background text-foreground p-8">
-  <div class="max-w-6xl mx-auto space-y-8">
-    
-    <!-- Header -->
-    <div class="flex items-center gap-4 border-b border-border pb-6">
-      <div class="p-4 bg-primary/10 rounded-2xl text-primary">
-        <BrainCircuit size={40} />
-      </div>
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">Detection Heuristics</h1>
-        <p class="text-neutral-400 mt-2 text-lg">Intelligent algorithms fueling rapid cross-platform cache and orphan detection.</p>
-      </div>
-    </div>
+<div class="flex-1 flex flex-col overflow-hidden bg-background h-full text-foreground relative">
+	
+	<!-- VSCode Editor Tab Bar -->
+	<div class="h-9 flex items-center bg-neutral-900 border-b border-border pl-2 shrink-0 select-none pt-1">
+		<div class="px-4 h-full flex items-center gap-2 bg-background border-x border-t border-border rounded-t-sm text-[13px] text-foreground font-medium relative top-px">
+			<BrainCircuit size={14} class="text-primary" />
+			<span>engine.heuristics</span>
+		</div>
+	</div>
+
+	<!-- Top App Toolbar (Dense Console Version) -->
+	<div class="h-12 flex items-center justify-between px-4 border-b border-border/50 shrink-0 bg-background">
+		<div class="flex flex-col">
+			<span class="text-xs uppercase tracking-widest text-muted-foreground font-bold">Detection Heuristics</span>
+			<span class="text-[10px] text-primary/70 font-mono">Intelligent algorithms fueling rapid cross-platform cache and orphan detection</span>
+		</div>
+	</div>
+
+  <!-- Main Workspace -->
+	<div class="flex-1 min-h-0 flex flex-col bg-background relative shadow-inner overflow-hidden">
+    <div class="flex-1 overflow-auto bg-background/50 p-6">
 
     <!-- Bento Grid Categories -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -176,4 +184,5 @@ flowchart TD
       </div>
     </div>
   </div>
+</div>
 </div>
