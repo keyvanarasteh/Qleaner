@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 159 | **Done:** 119 | **Ongoing:** 0 | **Pending:** 40
+> **Total Tasks:** 161 | **Done:** 121 | **Ongoing:** 0 | **Pending:** 40
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -14,6 +14,8 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [x] **157.** **[UX NEW] Cleaner Heuristics Dashboard:** Introduced a `/heuristics` visualization page showcasing Mermaid backend architecture algorithm logic and cleanup capabilities.
 - [x] **158.** **[UX FIX] Custom Tauri Titlebar Controls:** Addressed dynamic Svelte 5 rendering bypassing native Tauri `data-tauri-drag-region` logic. Re-implemented manual `getCurrentWindow().startDragging()` hook and fixed un-responsive window close/minimize buttons.
 - [x] **159.** **[UX FIX] Dashboard DOM Optimization:** Replaced visually heavy bento boxes with a dense Pro-minimalist datagrid. Debounced `$derived` array loops for active sorting payload so the frontend DOM stops thrashing during massive Rust telemetry dumps.
+- [x] **160.** **[UX FIX] Light Mode Semantic Synchronization:** Replaced global Svelte Tailwind literals (e.g. `bg-neutral-900`, `text-neutral-400`) securely using native theme primitives (`bg-card`, `text-muted-foreground`), fixing total Light Mode contrast blindness across all primary layouts.
+- [x] **161.** **[UX FIX] Compositor Scrolling Hardware Acceleration:** Eliminated Chromium scroll lag via optimized DOM boundaries (`transform: translateZ(0)`, `contain: content`, `will-change-scroll`) and stripped floating `backdrop-blur` layers to stabilize high-fps rendering.
 
 
 - [x] **149.** **[AUDIT FIX] Secure Shredder Directory Bypass:** The shredding loop in `clean_items` only shreds files at the root of a cache directory. Any deeply nested files within subdirectories are bypass-deleted via `remove_dir_all` without being shredded.
