@@ -3,16 +3,16 @@
 This document covers the complete workflow for compiling and signing the native macOS release of Qleaner (Tauri v2) on an Apple Silicon Mac Mini.
 
 ## 1. System Requirements & Prerequisites
-- [ ] Install Xcode Command Line Tools: `xcode-select --install`
-- [ ] Install Homebrew: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-- [ ] Install Rust for Apple Silicon: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-- [ ] Install Bun (Package Manager): `curl -fsSL https://bun.sh/install | bash`
-- [ ] Ensure macOS specific dependencies are met (no extra GTK like Linux is required as Tauri uses native WebKit).
+- [x] Install Xcode Command Line Tools: `xcode-select --install`
+- [x] Install Homebrew: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+- [x] Install Rust for Apple Silicon: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+- [x] Install Bun (Package Manager): `curl -fsSL https://bun.sh/install | bash`
+- [x] Ensure macOS specific dependencies are met (no extra GTK like Linux is required as Tauri uses native WebKit).
 
 ## 2. Project Initialization
-- [ ] Clone repository: `git clone <repo_url> && cd Qleaner`
-- [ ] Install JS dependencies using Bun: `bun install`
-- [ ] Verify Svelte/Vite configs are functioning: `bun run dev` (Ensure it hot-reloads properly on the Mac).
+- [x] Clone repository: `git clone <repo_url> && cd Qleaner`
+- [x] Install JS dependencies using Bun: `bun install`
+- [x] Verify Svelte/Vite configs are functioning: `bun run dev` (Ensure it hot-reloads properly on the Mac).
 
 ## 3. Apple Developer & Security Certificates (Signing)
 *Note: Without signing, the generated `.app` and `.dmg` will trigger the "App is damaged and cannot be opened" Gatekeeper error and requires users to run `xattr -cr /Applications/Qleaner.app`.*
