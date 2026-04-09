@@ -10,7 +10,7 @@ pub async fn init_db(app_dir: &Path) -> Result<SqlitePool, sqlx::Error> {
     let db_path = app_dir.join("qleaner.db");
     
     if !db_path.exists() {
-        let _ = std::fs::File::create(&db_path).map_err(|e| sqlx::Error::Io(e.into()));
+        std::fs::File::create(&db_path).map_err(|e| sqlx::Error::Io(e.into()))?;
     }
     
     let db_url = format!("sqlite://{}", db_path.display());

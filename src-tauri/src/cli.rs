@@ -1,4 +1,6 @@
-use crate::cleaner::detectors::{get_cache_locations, get_installed_bundle_ids, detect_container_orphans, detect_group_container_orphans, detect_preference_orphans, detect_app_support_orphans, detect_launch_agent_orphans, detect_cache_orphans};
+use crate::cleaner::detectors::get_cache_locations;
+#[cfg(target_os = "macos")]
+use crate::cleaner::detectors::{get_installed_bundle_ids, detect_container_orphans, detect_group_container_orphans, detect_preference_orphans, detect_app_support_orphans, detect_launch_agent_orphans, detect_cache_orphans};
 use crate::cleaner::scanner::{get_directory_size, human_readable_size};
 use crate::cleaner::commands::{fetch_docker_size, perform_docker_clean};
 use clap::Parser;
@@ -76,25 +78,33 @@ pub async fn execute() {
         }
     }
     
-    println!("\n>> Scanning aggressive software leftovers...");
-    let installed = get_installed_bundle_ids();
-    let containers = detect_container_orphans(&installed);
-    let groups = detect_group_container_orphans(&installed);
-    let prefs = detect_preference_orphans(&installed, None);
-    let support = detect_app_support_orphans(&installed, None);
-    let agents = detect_launch_agent_orphans(&installed, None);
-    let caches = detect_cache_orphans(&installed, None);
-    
-    let all_orphans = [containers, groups, prefs, support, agents, caches].concat();
-    for loc in all_orphans {
-        println!("[FOUND] ORPHAN: {} ({}) - {}", loc.name, loc.size_human, loc.path);
-        total_size += loc.size;
-        found_count += 1;
+    #[cfg(target_os = "macos")]
+    {
+        println!("\n>> Scanning aggressive software leftovers...");
+        let installed = get_installed_bundle_ids();
+        let containers = detect_container_orphans(&installed);
+        let groups = detect_group_container_orphans(&installed);
+        let prefs = detect_preference_orphans(&installed, None);
+        let support = detect_app_support_orphans(&installed, None);
+        let agents = detect_launch_agent_orphans(&installed, None);
+        let caches = detect_cache_orphans(&installed, None);
         
-        if args.clean {
-            let _ = trash::delete(&loc.path);
-            println!("        -> Purged Leftover ✓");
+        let all_orphans = [containers, groups, prefs, support, agents, caches].concat();
+        for loc in all_orphans {
+            println!("[FOUND] ORPHAN: {} ({}) - {}", loc.name, loc.size_human, loc.path);
+            total_size += loc.size;
+            found_count += 1;
+            
+            if args.clean {
+                let _ = trash::delete(&loc.path);
+                println!("        -> Purged Leftover ✓");
+            }
         }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        println!("\n>> Leftover orphan detection is currently macOS-only. Skipping on this platform.");
     }
     
     println!("\n=================================================");

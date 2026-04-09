@@ -8,8 +8,10 @@ use anyhow::Context;
 use super::error::CleanerError;
 use super::models::{CacheLocation, CleanerState, ScanProgress, SystemStats, MemoryStats, DiskStats, NetworkStats, SYSTEM, DISKS, NETWORKS, CleanResponse};
 use super::scanner::{get_directory_size, human_readable_size};
+use super::detectors::get_cache_locations;
+#[cfg(target_os = "macos")]
 use super::detectors::{
-    get_cache_locations, get_installed_bundle_ids, detect_container_orphans, 
+    get_installed_bundle_ids, detect_container_orphans, 
     detect_group_container_orphans, detect_preference_orphans, 
     detect_app_support_orphans, detect_launch_agent_orphans, detect_cache_orphans
 };
@@ -18,7 +20,8 @@ use tokio::io::{AsyncWriteExt, AsyncSeekExt};
 #[cfg(unix)]
 fn is_owned_by_current_user(meta: &std::fs::Metadata) -> bool {
     use std::os::unix::fs::MetadataExt;
-    let current_uid = unsafe { libc::getuid() };
+    // Safe UID check — no unsafe block needed
+    let current_uid = nix::unistd::getuid().as_raw();
     meta.uid() == current_uid
 }
 
@@ -192,8 +195,8 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
                 }
             }
         }
-            // Simulating artificial delay for cool scanning effect
-            tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
+            // Yield to allow UI events to be processed
+            tokio::task::yield_now().await;
         }
 
         let state = app_worker.state::<CleanerState>();
@@ -327,11 +330,7 @@ pub async fn clean_items(
                         continue;
                     }
                     
-                    if let Ok(meta) = entry.metadata().await {
-                        if !is_owned_by_current_user(&meta) {
-                            continue;
-                        }
-                    }
+                    // Duplicate ownership check removed (FIX-03)
 
                     if file_type.is_symlink() {
                         continue;
@@ -493,6 +492,7 @@ pub fn get_system_stats() -> SystemStats {
 // LEFTOVER SCAN COMMANDS
 // ----------------------------------------------------
 
+#[cfg(target_os = "macos")]
 #[tauri::command]
 pub async fn start_leftover_scan(app: AppHandle, state: State<'_, CleanerState>) -> Result<(), CleanerError> {
     let mut in_progress = state.leftover_scan_in_progress.lock().await;
@@ -576,6 +576,13 @@ pub async fn start_leftover_scan(app: AppHandle, state: State<'_, CleanerState>)
         }).await;
     });
 
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+pub async fn start_leftover_scan(_app: AppHandle, _state: State<'_, CleanerState>) -> Result<(), CleanerError> {
+    // Leftover orphan scanning is currently macOS-only
     Ok(())
 }
 
@@ -666,7 +673,7 @@ pub async fn add_schedule(db_pool: tauri::State<'_, sqlx::SqlitePool>, cron_expr
         .bind(cron_expr)
         .execute(&*db_pool)
         .await
-        .context("Failed deleting schedule target row from robust SQLite stores")?;
+        .context("Failed adding schedule to SQLite database")?;
     Ok(())
 }
 
@@ -676,7 +683,7 @@ pub async fn delete_schedule(db_pool: tauri::State<'_, sqlx::SqlitePool>, id: i6
         .bind(id)
         .execute(&*db_pool)
         .await
-        .context("Failed toggling active state of SQL configurations properly")?;
+        .context("Failed deleting schedule from SQLite database")?;
     Ok(())
 }
 
@@ -687,7 +694,7 @@ pub async fn toggle_schedule(db_pool: tauri::State<'_, sqlx::SqlitePool>, id: i6
         .bind(id)
         .execute(&*db_pool)
         .await
-        .context("Failed inserting automated scheduled sweep into database")?;
+        .context("Failed toggling schedule active state in database")?;
     Ok(())
 }
 

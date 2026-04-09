@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { resolve } from '$app/paths';
+  import type { Component } from 'svelte';
   import { 
     LayoutDashboard, 
     ShieldAlert, 
@@ -13,11 +14,11 @@
     ScrollText
   } from 'lucide-svelte';
 
-  let currentPath = $derived($page.url.pathname);
+  let currentPath = $derived(page.url.pathname);
 
   type ValidRoute = '/' | '/rules' | '/schedules' | '/settings' | '/about' | '/donate' | '/feedback' | '/history';
 
-  const mainNav: Array<{name: string, path: ValidRoute, icon: any}> = [
+  const mainNav: Array<{name: string, path: ValidRoute, icon: Component}> = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Rules', path: '/rules', icon: ShieldAlert },
     { name: 'Schedules', path: '/schedules', icon: CalendarClock },
@@ -25,7 +26,7 @@
     { name: 'Settings', path: '/settings', icon: Settings }
   ];
 
-  const bottomNav: Array<{name: string, path: ValidRoute, icon: any}> = [
+  const bottomNav: Array<{name: string, path: ValidRoute, icon: Component}> = [
     { name: 'About', path: '/about', icon: Info },
     { name: 'Donate', path: '/donate', icon: Heart },
     { name: 'Feedback', path: '/feedback', icon: MessageSquare }

@@ -12,6 +12,7 @@
 
   let logs = $state<AuditLog[]>([]);
   let loading = $state(true);
+  let loaded = $state(false);
 
   function formatBytes(bytes: number) {
     if (bytes === 0) return '0 B';
@@ -22,6 +23,8 @@
   }
 
   $effect(() => {
+    if (loaded) return;
+    loaded = true;
     invoke<AuditLog[]>('get_audit_logs')
       .then((data) => {
         logs = data;

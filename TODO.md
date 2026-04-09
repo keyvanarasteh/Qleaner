@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 130 | **Done:** 88 | **Ongoing:** 0 | **Pending:** 42
+> **Total Tasks:** 148 | **Done:** 106 | **Ongoing:** 0 | **Pending:** 42
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -155,3 +155,21 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [x] **123.** **Settings Permissions & Language Panel:** Display standard user permissions (File System, Network) and Paraglide Language selection natively inside the Preferences menu.
 - [x] **124.** **OS Environment Status:** Track CPU mapping, architecture, and live memory state straight from Tauri plugins directly inside the Settings layout.
 - [x] **125.** **Architecture Constraints Sync:** Mapped out QDebugger agent directives (Svelte/Tauri skills & workflows) explicitly inside AGENTS.md and GEMINI.md.
+- [x] **131.** **[AUDIT FIX] Scanner Test Arity:** Fixed `test_get_directory_size` calling `get_directory_size(path)` with 1 arg but function requires 2 (missing `CancellationToken`). Compilation was failing.
+- [x] **132.** **[AUDIT FIX] Unsafe Block Violation:** Replaced `unsafe { libc::getuid() }` in `commands.rs` with safe `nix::unistd::getuid()`. Removed `libc` crate, added `nix` with `user` feature.
+- [x] **133.** **[AUDIT FIX] Duplicate Ownership Check:** Removed exact duplicate ownership check block (lines 330-334) in `commands.rs` clean_items function.
+- [x] **134.** **[AUDIT FIX] Artificial 150ms Delay:** Removed production `tokio::time::sleep(150ms)` from scan loop. Replaced with `tokio::task::yield_now()` for non-blocking UI event flow.
+- [x] **135.** **[AUDIT FIX] Wrong Error Contexts:** Fixed 3 wrong `.context()` messages in schedule DB operations — `add_schedule` said "deleting", `delete_schedule` said "toggling", `toggle_schedule` said "inserting".
+- [x] **136.** **[AUDIT FIX] CLI Platform Guards:** Wrapped macOS-only leftover detector calls in `cli.rs` with `#[cfg(target_os = "macos")]` blocks. Linux/Windows now skips cleanly.
+- [x] **137.** **[AUDIT FIX] Commands Platform Guards:** Wrapped `start_leftover_scan` in `commands.rs` with `#[cfg(target_os = "macos")]` and provided no-op stub for other platforms.
+- [x] **138.** **[AUDIT FIX] Cargo.toml Metadata:** Updated placeholder `description = "A Tauri App"` and `authors = ["you"]` with proper Qleaner project metadata.
+- [x] **139.** **[AUDIT FIX] Sidebar `any` Type:** Replaced `icon: any` with `icon: Component` from `svelte` in `Sidebar.svelte`.
+- [x] **140.** **[AUDIT FIX] Deprecated $app/stores:** Migrated `Sidebar.svelte` from deprecated `$app/stores` `$page` to `$app/state` `page` (Svelte 5 convention).
+- [x] **141.** **[AUDIT FIX] Hardcoded Architecture:** Replaced hardcoded `x86_64` in settings page with dynamic detection via `navigator.userAgent`.
+- [x] **142.** **[AUDIT FIX] Non-Functional Language Select:** Wired the language dropdown with `onchange` handler persisting selection to `localStorage`.
+- [x] **143.** **[AUDIT FIX] Missing Event Listener:** Added `leftover-scan-progress` event listener to `cleaner.svelte.ts` store so frontend actually receives leftover scan events.
+- [x] **144.** **[AUDIT FIX] History $effect Guard:** Added `loaded` guard to prevent `$effect` from re-fetching audit logs on every re-render in `history/+page.svelte`.
+- [x] **145.** **[AUDIT FIX] DB Error Propagation:** Changed `let _ = std::fs::File::create(&db_path)` to properly propagate error via `?` operator in `db.rs`.
+- [x] **146.** **[AUDIT FIX] Dead Imports Cleanup:** Separated macOS-only detector imports behind `#[cfg(target_os)]` in both `cli.rs` and `commands.rs` to eliminate unused import warnings on Linux.
+- [x] **147.** **[AUDIT FIX] libc→nix Migration:** Swapped `libc` crate for `nix` (v0.29 with "user" feature) for safe Unix UID lookups without `unsafe` blocks.
+- [x] **148.** **[AUDIT] i18n False Completion:** Task 97 (i18n) was marked done but zero Paraglide message functions are used in any templates. All UI strings remain hardcoded English. Needs Phase 4 implementation.

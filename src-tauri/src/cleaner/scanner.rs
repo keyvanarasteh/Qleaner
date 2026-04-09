@@ -83,11 +83,12 @@ mod tests {
         let path3 = nested_dir.join("file3.txt");
         fs::write(&path3, "12345").unwrap(); // 5 bytes
 
-        let size = get_directory_size(dir.path());
+        let token = CancellationToken::new();
+        let size = get_directory_size(dir.path(), token.clone());
         assert_eq!(size, 16); // 5 + 6 + 5 = 16 bytes
 
         // Empty directory
         let empty_dir = tempdir().unwrap();
-        assert_eq!(get_directory_size(empty_dir.path()), 0);
+        assert_eq!(get_directory_size(empty_dir.path(), token), 0);
     }
 }

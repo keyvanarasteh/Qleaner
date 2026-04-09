@@ -87,6 +87,15 @@ class CleanerStore {
                 this.fetchResults();
             }
         });
+
+        await listen('leftover-scan-progress', (event) => {
+            const payload = event.payload as ScanProgress;
+            this.progress = payload;
+            if (payload.percent === 100) {
+                this.isScanning = false;
+                this.fetchResults();
+            }
+        });
     }
 
     async refreshStats() {

@@ -3,6 +3,26 @@
   import { themeState } from '$lib/stores/theme.svelte';
   import { cleanerStore } from '$lib/stores/cleaner.svelte';
   import { settingsStore } from '$lib/stores/settings.svelte';
+
+  // Dynamic architecture detection
+  let arch = $state('--');
+  let selectedLang = $state('en');
+
+  if (typeof window !== 'undefined') {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes('aarch64') || ua.includes('arm64')) arch = 'aarch64';
+    else if (ua.includes('x86_64') || ua.includes('x64') || ua.includes('amd64') || ua.includes('wow64')) arch = 'x86_64';
+    else if (ua.includes('i686') || ua.includes('i386')) arch = 'x86';
+    else arch = navigator.platform || 'unknown';
+
+    selectedLang = localStorage.getItem('qleaner-lang') || 'en';
+  }
+
+  function handleLangChange(e: Event) {
+    const target = e.target as HTMLSelectElement;
+    selectedLang = target.value;
+    localStorage.setItem('qleaner-lang', selectedLang);
+  }
 </script>
 
 <div class="flex-1 flex flex-col p-8 gap-8 overflow-y-auto w-full h-full">
@@ -52,7 +72,11 @@
             <p class="font-medium">Language</p>
             <p class="text-sm text-neutral-400">Select application interface language</p>
           </div>
-          <select class="bg-neutral-800 border-none text-foreground py-2 px-4 rounded-lg focus:ring-1 focus:ring-primary outline-none">
+          <select 
+            class="bg-neutral-800 border-none text-foreground py-2 px-4 rounded-lg focus:ring-1 focus:ring-primary outline-none"
+            value={selectedLang}
+            onchange={handleLangChange}
+          >
             <option value="en">English (US)</option>
             <option value="tr">Türkçe</option>
           </select>
@@ -114,7 +138,7 @@
         <div class="p-4 bg-neutral-900/50 rounded-lg flex flex-col gap-2">
           <div class="flex justify-between text-sm">
             <span class="text-neutral-400">Architecture</span>
-            <span class="font-medium font-mono text-foreground">x86_64</span>
+            <span class="font-medium font-mono text-foreground">{arch}</span>
           </div>
           <div class="flex justify-between text-sm">
             <span class="text-neutral-400">CPU Thread Count</span>
