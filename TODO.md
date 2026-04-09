@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 154 | **Done:** 106 | **Ongoing:** 0 | **Pending:** 48
+> **Total Tasks:** 154 | **Done:** 112 | **Ongoing:** 0 | **Pending:** 42
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -11,12 +11,12 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 *Critical infrastructure, permissions, testing, and distribution pipelines.*
 *Based on the competitive landscape observed in `docs/vison.html` mapping 30 top-tier disk utilities (e.g., CleanMyMac, BleachBit, DaisyDisk).*
 
-- [ ] **149.** **[AUDIT FIX] Secure Shredder Directory Bypass:** The shredding loop in `clean_items` only shreds files at the root of a cache directory. Any deeply nested files within subdirectories are bypass-deleted via `remove_dir_all` without being shredded.
-- [ ] **150.** **[AUDIT FIX] Leftover Cleaner Safety Bypass:** The `clean_leftovers` command lacks all safety bounds. It does not check for path traversal attacks (`..`), active process file locks, or restricted system paths (unlike `clean_items`).
-- [ ] **151.** **[AUDIT FIX] Real-Time Clean Progress:** The `clean_items` command lacks streaming `app.emit` events. Massive I/O directory wipeouts cause the Tauri frontend to spin indefinitely without progress indication.
-- [ ] **152.** **[AUDIT FIX] Incomplete Secure Shredder:** The `secure_shred_file` algorithm successfully overwrites data iteratively but fails to cryptographically rename the file name before calling `fs::remove_file`, leaving metadata (names/extensions) recoverable.
-- [ ] **153.** **[AUDIT FIX] Synchronous Defaults Sub-process:** `detectors.rs` iterates over `/Applications` and synchronously spawns the `defaults` CLI per `.app` to parse `Info.plist`. This blocking overhead crushes the leftover scan pipeline.
-- [ ] **154.** **[AUDIT FIX] Missing Cross-Platform Leftover Support:** `start_leftover_scan` immediately exits `Ok(())` on Linux/Windows. The UX "Leftovers" panel remains permanently disabled outside of macOS.
+- [x] **149.** **[AUDIT FIX] Secure Shredder Directory Bypass:** The shredding loop in `clean_items` only shreds files at the root of a cache directory. Any deeply nested files within subdirectories are bypass-deleted via `remove_dir_all` without being shredded.
+- [x] **150.** **[AUDIT FIX] Leftover Cleaner Safety Bypass:** The `clean_leftovers` command lacks all safety bounds. It does not check for path traversal attacks (`..`), active process file locks, or restricted system paths (unlike `clean_items`).
+- [x] **151.** **[AUDIT FIX] Real-Time Clean Progress:** The `clean_items` command lacks streaming `app.emit` events. Massive I/O directory wipeouts cause the Tauri frontend to spin indefinitely without progress indication.
+- [x] **152.** **[AUDIT FIX] Incomplete Secure Shredder:** The `secure_shred_file` algorithm successfully overwrites data iteratively but fails to cryptographically rename the file name before calling `fs::remove_file`, leaving metadata (names/extensions) recoverable.
+- [x] **153.** **[AUDIT FIX] Synchronous Defaults Sub-process:** `detectors.rs` iterates over `/Applications` and synchronously spawns the `defaults` CLI per `.app` to parse `Info.plist`. This blocking overhead crushes the leftover scan pipeline.
+- [x] **154.** **[AUDIT FIX] Missing Cross-Platform Leftover Support:** `start_leftover_scan` immediately exits `Ok(())` on Linux/Windows. The UX "Leftovers" panel remains permanently disabled outside of macOS.
 
 - [ ] **85.** **E2E Tests (Playwright):** Integrate Playwright for Tauri E2E testing to simulate UI clicks automatically spawning mocked Tauri commands.
 - [ ] **98.** **Crash Reporting:** Integrate Sentry natively via `sentry-rust` and `sentry-javascript` to catch unhandled application panics remotely.

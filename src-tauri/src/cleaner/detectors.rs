@@ -298,6 +298,19 @@ pub fn get_cache_locations() -> Vec<CacheLocation> {
 }
 
 pub fn parse_plist_bundle_id(plist_path: &Path) -> Option<String> {
+    if let Ok(content) = std::fs::read_to_string(plist_path) {
+        if let Some(key_idx) = content.find("<key>CFBundleIdentifier</key>") {
+            let substr = &content[key_idx..];
+            if let Some(start_idx) = substr.find("<string>") {
+                if let Some(end_idx) = substr[start_idx..].find("</string>") {
+                    let bundle_id = &substr[start_idx + 8..start_idx + end_idx];
+                    return Some(bundle_id.trim().to_string());
+                }
+            }
+        }
+    }
+
+    // Fallback to defaults CLI if it's a binary plist or string matching fails
     Command::new("defaults")
         .args(["read", plist_path.to_str()?, "CFBundleIdentifier"])
         .output()

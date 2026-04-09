@@ -54,49 +54,87 @@ async fn secure_shred_file(path: &std::path::Path) -> std::io::Result<()> {
     if let Ok(metadata) = tokio::fs::metadata(path).await {
         if metadata.is_dir() { return Ok(()); }
         let size = metadata.len();
-        if size == 0 { return Ok(()); }
-        
-        let chunk_size = size.min(1024 * 1024) as usize;
-        let mut f = tokio::fs::OpenOptions::new().write(true).open(path).await?;
-        
-        // Pass 1: Zeros
-        let zeros = vec![0u8; chunk_size];
-        let mut written = 0;
-        while written < size {
-            let to_write = (size - written).min(chunk_size as u64) as usize;
-            f.write_all(&zeros[..to_write]).await?;
-            written += to_write as u64;
-        }
-        f.sync_all().await?;
+        if size > 0 {
+            let chunk_size = size.min(1024 * 1024) as usize;
+            match tokio::fs::OpenOptions::new().write(true).open(path).await {
+                Ok(mut f) => {
+                    // Pass 1: Zeros
+                    let zeros = vec![0u8; chunk_size];
+                    let mut written = 0;
+                    while written < size {
+                        let to_write = (size - written).min(chunk_size as u64) as usize;
+                        if f.write_all(&zeros[..to_write]).await.is_err() { break; }
+                        written += to_write as u64;
+                    }
+                    let _ = f.sync_all().await;
 
-        // Pass 2: Ones
-        let ones = vec![0xFFu8; chunk_size];
-        written = 0;
-        f.seek(std::io::SeekFrom::Start(0)).await?;
-        while written < size {
-            let to_write = (size - written).min(chunk_size as u64) as usize;
-            f.write_all(&ones[..to_write]).await?;
-            written += to_write as u64;
-        }
-        f.sync_all().await?;
+                    // Pass 2: Ones
+                    let ones = vec![0xFFu8; chunk_size];
+                    written = 0;
+                    let _ = f.seek(std::io::SeekFrom::Start(0)).await;
+                    while written < size {
+                        let to_write = (size - written).min(chunk_size as u64) as usize;
+                        if f.write_all(&ones[..to_write]).await.is_err() { break; }
+                        written += to_write as u64;
+                    }
+                    let _ = f.sync_all().await;
 
-        // Pass 3: Random
-        written = 0;
-        f.seek(std::io::SeekFrom::Start(0)).await?;
-        use rand::RngCore;
-        let mut random_bytes = vec![0u8; chunk_size];
-        while written < size {
-            let to_write = (size - written).min(chunk_size as u64) as usize;
-            {
-                let mut rng = rand::thread_rng();
-                rng.fill_bytes(&mut random_bytes[..to_write]);
+                    // Pass 3: Random
+                    written = 0;
+                    let _ = f.seek(std::io::SeekFrom::Start(0)).await;
+                    use rand::RngCore;
+                    let mut random_bytes = vec![0u8; chunk_size];
+                    while written < size {
+                        let to_write = (size - written).min(chunk_size as u64) as usize;
+                        {
+                            let mut rng = rand::thread_rng();
+                            rng.fill_bytes(&mut random_bytes[..to_write]);
+                        }
+                        if f.write_all(&random_bytes[..to_write]).await.is_err() { break; }
+                        written += to_write as u64;
+                    }
+                    let _ = f.sync_all().await;
+                }
+                Err(_) => {} // Silently fail to shred locked items but proceed to rename/delete attempts
             }
-            f.write_all(&random_bytes[..to_write]).await?;
-            written += to_write as u64;
         }
-        f.sync_all().await?;
+        
+        // Final Metadata Wipe (Rename File)
+        let mut random_name = String::with_capacity(16);
+        let chars: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        for _ in 0..16 {
+            use rand::RngCore;
+            let mut rng = rand::thread_rng();
+            random_name.push(chars[(rng.next_u32() as usize) % chars.len()] as char);
+        }
+        
+        let mut new_path = path.to_path_buf();
+        new_path.set_file_name(&random_name);
+        new_path.set_extension("shrd");
+        
+        if tokio::fs::rename(path, &new_path).await.is_ok() {
+            let _ = tokio::fs::remove_file(&new_path).await;
+        } else {
+            let _ = tokio::fs::remove_file(path).await;
+        }
     }
     Ok(())
+}
+
+fn get_all_files(dir: &std::path::Path) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    let walker = ignore::WalkBuilder::new(dir)
+        .standard_filters(false)
+        .follow_links(false)
+        .build();
+    for result in walker {
+        if let Ok(entry) = result {
+            if entry.file_type().map_or(false, |ft| ft.is_file()) {
+                files.push(entry.path().to_path_buf());
+            }
+        }
+    }
+    files
 }
 
 #[tauri::command]
@@ -265,6 +303,7 @@ pub async fn clean_items(
     use_shredding: Option<bool>,
     state: State<'_, CleanerState>,
     db_pool: State<'_, sqlx::SqlitePool>,
+    app: AppHandle,
 ) -> Result<CleanResponse, CleanerError> {
     let mut sys = sysinfo::System::new_all();
     sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
@@ -284,8 +323,9 @@ pub async fn clean_items(
     let mut freed_space = 0;
     let mut files_deleted = 0;
     let mut errors = Vec::new();
+    let total_items = items.len();
 
-    for id in items {
+    for (i, id) in items.into_iter().enumerate() {
         if let Some(loc) = results.iter().find(|l| l.id == id) {
             let path_lower = loc.path.to_lowercase();
             
@@ -302,6 +342,14 @@ pub async fn clean_items(
                 errors.push(format!("Cannot clean Firefox cache while process is running: {}", loc.path));
                 continue;
             }
+            let _ = app.emit("clean-progress", &ScanProgress {
+                current: i,
+                total: total_items,
+                percent: ((i as f32 / total_items as f32) * 100.0) as u8,
+                current_location: loc.path.clone(),
+                found_count: files_deleted as usize,
+                total_size: freed_space,
+            });
 
             #[cfg(not(feature = "dangerous-clean"))]
             if path_lower.contains("system") || path_lower.contains("/var/root") || path_lower.contains("windows\\system") {
@@ -376,7 +424,17 @@ pub async fn clean_items(
 
                     let mut use_trash = true;
                     if use_shredding.unwrap_or(false) {
-                        if !is_dir {
+                        if is_dir {
+                            let files_to_shred = tokio::task::spawn_blocking({
+                                let p = child_path.clone();
+                                move || get_all_files(&p)
+                            }).await.unwrap_or_default();
+                            
+                            for f in files_to_shred {
+                                let _ = secure_shred_file(&f).await;
+                            }
+                            use_trash = false; // Bypass trash for thoroughly shredded blocks
+                        } else {
                             let _ = secure_shred_file(&child_path).await;
                             use_trash = false; // Bypass trash for thoroughly shredded blocks
                         }
@@ -422,9 +480,18 @@ pub async fn clean_items(
 
     state.size_cache.lock().await.shrink_to_fit();
 
+    let _ = app.emit("clean-progress", &ScanProgress {
+        current: total_items,
+        total: total_items,
+        percent: 100,
+        current_location: "Clean complete".into(),
+        found_count: files_deleted as usize,
+        total_size: freed_space,
+    });
+
     Ok(CleanResponse {
         freed_bytes: freed_space,
-        files_deleted,
+        files_deleted: files_deleted as u32,
         errors,
     })
 }
@@ -623,23 +690,58 @@ pub async fn clean_leftovers(
     items: Vec<String>, 
     state: State<'_, CleanerState>,
     db_pool: State<'_, sqlx::SqlitePool>,
+    app: AppHandle,
 ) -> Result<u64, CleanerError> {
     let results = state.leftover_results.lock().await.clone();
     let mut freed_space = 0;
+    
+    let mut sys = sysinfo::System::new_all();
+    sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
 
-    for id in items {
-        if let Some(loc) = results.iter().find(|l| l.id == id) {
-            if loc.path.contains("..") { continue; }
+    let mut is_chrome_running = false;
+    let mut is_firefox_running = false;
+
+    for process in sys.processes().values() {
+        let name = process.name().to_string_lossy().to_lowercase();
+        if name.contains("chrome") { is_chrome_running = true; }
+        if name.contains("firefox") { is_firefox_running = true; }
+    }
+
+    let total_items = items.len();
+
+    for (i, id) in items.iter().enumerate() {
+        if let Some(loc) = results.iter().find(|l| &l.id == id) {
+            let path_lower = loc.path.to_lowercase();
+            
+            // Safety bounds replication
+            if path_lower.contains("..") { continue; }
+            if is_chrome_running && (path_lower.contains("google/chrome") || path_lower.contains("google\\chrome")) { continue; }
+            if is_firefox_running && (path_lower.contains("mozilla/firefox") || path_lower.contains("mozilla\\firefox")) { continue; }
+            
+            #[cfg(not(feature = "dangerous-clean"))]
+            if path_lower.contains("system") || path_lower.contains("/var/root") || path_lower.contains("windows\\system") {
+                continue;
+            }
+
+            let _ = app.emit("clean-progress", &ScanProgress {
+                current: i,
+                total: total_items,
+                percent: ((i as f32 / total_items as f32) * 100.0) as u8,
+                current_location: loc.path.clone(),
+                found_count: 0,
+                total_size: freed_space,
+            });
+
             let path = PathBuf::from(&loc.path);
-            let exists = fs::try_exists(&path).await.unwrap_or(false);
+            let exists = tokio::fs::try_exists(&path).await.unwrap_or(false);
             if exists {
-                if let Ok(metadata) = fs::symlink_metadata(&path).await {
+                if let Ok(metadata) = tokio::fs::symlink_metadata(&path).await {
                     let is_dir = metadata.is_dir();
                     if trash::delete(&path).is_err() {
                         if is_dir {
-                            let _ = fs::remove_dir_all(&path).await;
+                            let _ = tokio::fs::remove_dir_all(&path).await;
                         } else {
-                            let _ = fs::remove_file(&path).await;
+                            let _ = tokio::fs::remove_file(&path).await;
                         }
                     }
                     freed_space += loc.size;
@@ -650,6 +752,15 @@ pub async fn clean_leftovers(
             }
         }
     }
+    
+    let _ = app.emit("clean-progress", &ScanProgress {
+        current: total_items,
+        total: total_items,
+        percent: 100,
+        current_location: "Clean complete".into(),
+        found_count: 0,
+        total_size: freed_space,
+    });
 
     Ok(freed_space)
 }
