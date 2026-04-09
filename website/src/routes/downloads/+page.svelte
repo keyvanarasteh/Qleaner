@@ -57,10 +57,12 @@
 				</div>
 
 				<div class="mt-auto pt-6 border-t border-white/10">
-					<button class="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3 px-4 font-semibold transition-colors {dl.button}">
+					<a href="https://github.com/keyvanarasteh/Qleaner/releases/latest" 
+					   target="_blank" rel="noopener noreferrer" 
+					   class="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3 px-4 font-semibold transition-colors {dl.button}">
 						<DownloadCloud class="w-5 h-5" />
 						{m.dl_btn_dl()}
-					</button>
+					</a>
 				</div>
 			</div>
 		{/each}

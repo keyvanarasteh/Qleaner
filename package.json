@@ -1,7 +1,7 @@
 {
-  "name": "tauri-app",
-  "version": "0.1.0",
-  "description": "",
+  "name": "qleaner",
+  "version": "1.0.0",
+  "description": "Blazing fast system optimization utility",
   "type": "module",
   "scripts": {
     "dev": "vite dev",

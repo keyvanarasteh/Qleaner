@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-app",
-  "version": "0.1.0",
-  "identifier": "com.drvoid.tauri-app",
+  "productName": "Qleaner",
+  "version": "1.0.0",
+  "identifier": "com.drvoid.qleaner",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
