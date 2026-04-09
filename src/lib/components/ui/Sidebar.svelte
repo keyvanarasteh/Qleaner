@@ -42,7 +42,7 @@
     <Activity class="w-6 h-6" />
   </div>
 
-  <div class="flex-1 py-4 flex flex-col items-center gap-4 overflow-y-auto">
+  <div class="flex-1 py-4 flex flex-col items-center gap-4">
     {#each mainNav as item (item.name)}
       <a 
         href={resolve(item.path)}
