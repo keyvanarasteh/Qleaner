@@ -61,7 +61,7 @@
 
   <!-- Main Workspace -->
 	<div class="flex-1 min-h-0 flex flex-col bg-background relative shadow-inner font-mono text-[13px] overflow-hidden">
-    <div class="flex-1 overflow-auto bg-background relative">
+    <div class="flex-1 scroll-optimized bg-background relative">
     {#if loading}
       <div class="absolute inset-0 flex items-center justify-center">
         <div class="animate-pulse text-neutral-500 font-mono tracking-widest flex items-center gap-3 text-sm">

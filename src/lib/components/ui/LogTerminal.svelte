@@ -83,7 +83,7 @@
 
   <!-- Terminal Content -->
   {#if isExpanded}
-    <div bind:this={scrollContainer} class="flex-1 p-2 overflow-y-auto font-mono text-xs bg-black text-[#56b6c2] selection:bg-[#3e4451] flex flex-col gap-1 items-start">
+    <div bind:this={scrollContainer} class="flex-1 p-2 scroll-optimized font-mono text-xs bg-black text-[#56b6c2] selection:bg-[#3e4451] flex flex-col gap-1 items-start">
       {#each logs as log, i (i)}
         <div class="hover:bg-white/5 w-full px-1 py-[1px] rounded transition-colors break-all">
           <span class="text-[#e5c07b] mr-2">></span>

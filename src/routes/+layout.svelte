@@ -34,7 +34,7 @@
 <div class="h-10 w-full fixed top-0 left-0 z-[900] select-none">
     <!-- Drag layer: sits behind everything, handles window dragging natively -->
     <div 
-        class="absolute inset-0 bg-background/80 backdrop-blur-md border-b border-border"
+        class="absolute inset-0 bg-background border-b border-border"
         data-tauri-drag-region
     ></div>
 

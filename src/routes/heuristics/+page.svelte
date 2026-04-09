@@ -125,7 +125,7 @@
 
   <!-- Main Workspace -->
 	<div class="flex-1 min-h-0 flex flex-col bg-background relative shadow-inner overflow-hidden">
-    <div class="flex-1 overflow-auto bg-background/50 p-6">
+    <div class="flex-1 scroll-optimized bg-background/50 p-6">
 
     <!-- Bento Grid Categories -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

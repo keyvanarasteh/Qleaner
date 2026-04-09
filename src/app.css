@@ -102,3 +102,26 @@ code, pre, kbd, samp, .font-mono {
   font-family: var(--font-mono);
   font-size: 12px;
 }
+
+/* Deep Optimization for Page Scroll Containers */
+@layer utilities {
+  .scroll-optimized {
+    /* Enforce hardware acceleration by moving container to GPU compositor layer */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    
+    /* Pre-calculate scrolling memory limits */
+    will-change: scroll-position, transform;
+    
+    /* Strict layout containment prevents thrashing outside this DOM tree */
+    contain: content;
+    
+    /* Stop scroll chaining at root */
+    overscroll-behavior-y: contain;
+    
+    overflow-y: auto;
+    
+    /* Native smooth mobile physics if touched */
+    -webkit-overflow-scrolling: touch;
+  }
+}

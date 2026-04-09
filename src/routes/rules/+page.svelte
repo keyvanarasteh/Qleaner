@@ -2,7 +2,7 @@
   import { ShieldAlert } from 'lucide-svelte';
 </script>
 
-<div class="flex-1 flex flex-col p-8 gap-8 overflow-y-auto w-full h-full">
+<div class="flex-1 flex flex-col p-8 gap-8 scroll-optimized w-full h-full">
   <header class="flex items-center justify-between">
     <div>
       <h1 class="text-3xl font-semibold tracking-tight text-foreground flex items-center gap-3">

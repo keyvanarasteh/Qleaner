@@ -266,7 +266,7 @@
 
 			<!-- Virtual Scroll Area -->
 			<div 
-				class="flex-1 overflow-auto relative" 
+				class="flex-1 scroll-optimized relative" 
 				onscroll={(e) => scrollY = e.currentTarget.scrollTop} 
 				bind:clientHeight={viewportHeight}
 			>
