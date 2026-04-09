@@ -95,6 +95,19 @@
 		await handleClean();
 	}
 
+	// Elapsed time ticker for scan progress
+	let elapsedSec = $state(0);
+	$effect(() => {
+		if (cleanerStore.isScanning) {
+			const timer = setInterval(() => {
+				elapsedSec = Math.floor((Date.now() - cleanerStore.scanStartMs) / 1000);
+			}, 1000);
+			return () => clearInterval(timer);
+		} else {
+			elapsedSec = 0;
+		}
+	});
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && cleanerStore.isScanning) {
 			cleanerStore.abortScan();
@@ -254,32 +267,67 @@
 
 	<!-- Main Content Area -->
 	<div class="flex-1 min-h-0 flex flex-col gap-4">
-		{#if cleanerStore.isScanning}
-			<div class="bg-card border border-border rounded-xl p-12 flex flex-col items-center justify-center text-center flex-1">
-				<div class="relative w-24 h-24 mb-4">
-					<div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
-					<div 
-						class="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"
-					></div>
-					<div class="absolute inset-0 flex items-center justify-center text-xl font-bold">
-						<NumberFlow value={cleanerStore.progress?.percent || 0} />%
-					</div>
+	{#if cleanerStore.isScanning}
+		<div class="bg-card border border-border rounded-xl p-8 flex flex-col items-center justify-center text-center flex-1">
+			<!-- Progress Ring -->
+			<div class="relative w-28 h-28 mb-6">
+				<div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+				<div 
+					class="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"
+				></div>
+				<div class="absolute inset-0 flex items-center justify-center text-2xl font-bold">
+					<NumberFlow value={cleanerStore.progress?.percent || 0} />%
 				</div>
-				<h3 class="text-xl font-semibold mt-6 mb-2">Analyzing Storage...</h3>
-				<div class="w-full max-w-md h-2 bg-neutral-800 rounded-full overflow-hidden mt-2 mb-4">
-					<div class="h-full bg-primary transition-all duration-300 ease-out" style="width: {cleanerStore.progress?.percent || 0}%"></div>
-				</div>
-				<p class="text-neutral-400 text-sm max-w-md truncate">
-					{cleanerStore.progress?.current_location || 'Initializing...'}
-				</p>
-				<button 
-					class="mt-8 border border-red-500/20 text-red-500 hover:bg-red-500/10 px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
-					onclick={() => cleanerStore.abortScan()}
-				>
-					<XOctagon size={18} />
-					Abort Operation
-				</button>
 			</div>
+
+			<!-- Title & Location -->
+			<h3 class="text-xl font-semibold mb-1">Scanning System...</h3>
+			<p class="text-neutral-400 text-sm max-w-lg truncate mb-6 font-mono">
+				{cleanerStore.progress?.current_location || 'Initializing...'}
+			</p>
+
+			<!-- Progress Bar -->
+			<div class="w-full max-w-lg mb-6">
+				<div class="flex justify-between text-xs text-neutral-500 mb-1.5 font-mono">
+					<span>{cleanerStore.progress?.current || 0} / {cleanerStore.progress?.total || '...'} locations</span>
+					<span>{cleanerStore.progress?.percent || 0}%</span>
+				</div>
+				<div class="w-full h-2.5 bg-neutral-800 rounded-full overflow-hidden">
+					<div class="h-full bg-primary transition-all duration-300 ease-out rounded-full" style="width: {cleanerStore.progress?.percent || 0}%"></div>
+				</div>
+			</div>
+
+			<!-- Live Metrics Row -->
+			<div class="grid grid-cols-3 gap-6 w-full max-w-lg text-center">
+				<div class="bg-neutral-900/60 rounded-lg p-3">
+					<p class="text-xs text-neutral-500 mb-1">Found</p>
+					<p class="text-lg font-bold text-primary">
+						<NumberFlow value={cleanerStore.progress?.found_count || 0} />
+					</p>
+				</div>
+				<div class="bg-neutral-900/60 rounded-lg p-3">
+					<p class="text-xs text-neutral-500 mb-1">Size</p>
+					<p class="text-lg font-bold text-foreground">
+						{formatBytes(cleanerStore.progress?.total_size || 0)}
+					</p>
+				</div>
+				<div class="bg-neutral-900/60 rounded-lg p-3">
+					<p class="text-xs text-neutral-500 mb-1">Elapsed</p>
+					<p class="text-lg font-bold text-foreground font-mono">
+						{elapsedSec}s
+					</p>
+				</div>
+			</div>
+
+			<!-- Abort Button -->
+			<button 
+				class="mt-8 border border-red-500/20 text-red-500 hover:bg-red-500/10 px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+				onclick={() => cleanerStore.abortScan()}
+			>
+				<XOctagon size={18} />
+				Abort Operation
+			</button>
+		</div>
 		{:else if cleanerStore.results.length > 0}
 			<div class="flex items-center justify-between mt-4">
 				<h2 class="text-xl font-semibold flex items-center gap-2">

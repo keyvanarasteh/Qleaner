@@ -70,6 +70,7 @@ class CleanerStore {
     stats = $state<SystemStats | null>(null);
     isScanning = $state(false);
     isCleaning = $state(false);
+    scanStartMs = $state(0);
 
     constructor() {
         if (typeof window !== 'undefined') {
@@ -85,6 +86,14 @@ class CleanerStore {
             if (this.progress.percent === 100) {
                 this.isScanning = false;
                 this.fetchResults();
+            }
+        });
+
+        await listen('scan-result-item', (event) => {
+            const item = event.payload as CacheLocation;
+            // Avoid duplicates by id
+            if (!this.results.some(r => r.id === item.id)) {
+                this.results.push(item);
             }
         });
 
@@ -108,7 +117,8 @@ class CleanerStore {
 
     async startScan() {
         this.isScanning = true;
-        this.progress = { current: 0, total: 100, percent: 0, current_location: 'Starting...', found_count: 0, total_size: 0 };
+        this.scanStartMs = Date.now();
+        this.progress = { current: 0, total: 100, percent: 1, current_location: 'Starting...', found_count: 0, total_size: 0 };
         this.results = [];
         try {
             await invoke('start_scan');

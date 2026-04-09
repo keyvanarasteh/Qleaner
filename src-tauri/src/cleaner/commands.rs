@@ -142,15 +142,26 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
         let mut total_size = 0;
         let mut local_cache_updates = HashMap::new();
 
+        // Emit initial "starting" progress immediately
+        let _ = tx.send(ScanProgress {
+            current: 0,
+            total,
+            percent: 1,
+            current_location: "Starting scan...".into(),
+            found_count: 0,
+            total_size: 0,
+        }).await;
+
         for (i, loc) in locations.iter_mut().enumerate() {
             if token.is_cancelled() {
                 break;
             }
 
+            // Emit "scanning" progress BEFORE computing size
             let _ = tx.send(ScanProgress {
                 current: i,
                 total,
-                percent: ((i as f32 / total as f32) * 100.0) as u8,
+                percent: ((i as f32 / total as f32) * 95.0) as u8 + 2, // 2-97% range
                 current_location: loc.path.clone(),
                 found_count,
                 total_size,
@@ -195,6 +206,22 @@ pub async fn start_scan(app: AppHandle, state: State<'_, CleanerState>) -> Resul
                 }
             }
         }
+
+            // Emit per-item result so UI can render incrementally
+            if loc.exists && loc.size > 0 {
+                let _ = app_worker.emit("scan-result-item", loc.clone());
+            }
+
+            // Emit post-scan progress with updated counts
+            let _ = tx.send(ScanProgress {
+                current: i + 1,
+                total,
+                percent: (((i + 1) as f32 / total as f32) * 95.0) as u8 + 2,
+                current_location: loc.path.clone(),
+                found_count,
+                total_size,
+            }).await;
+
             // Yield to allow UI events to be processed
             tokio::task::yield_now().await;
         }
