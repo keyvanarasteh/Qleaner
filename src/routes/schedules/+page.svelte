@@ -50,7 +50,7 @@
   <div class="bg-card border border-border rounded-xl flex-1 flex flex-col shadow-sm overflow-hidden">
     {#if schedulesStore.isLoading && schedulesStore.items.length === 0}
       <div class="flex-1 flex items-center justify-center">
-        <Clock class="w-8 h-8 text-neutral-600 animate-pulse" />
+        <Clock class="w-8 h-8 text-muted-foreground animate-pulse" />
       </div>
     {:else if schedulesStore.items.length === 0}
       <div class="flex-1 flex flex-col items-center justify-center p-12 text-center">

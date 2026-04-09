@@ -64,13 +64,13 @@
     <div class="flex-1 scroll-optimized bg-background relative">
     {#if loading}
       <div class="absolute inset-0 flex items-center justify-center">
-        <div class="animate-pulse text-neutral-500 font-mono tracking-widest flex items-center gap-3 text-sm">
+        <div class="animate-pulse text-muted-foreground font-mono tracking-widest flex items-center gap-3 text-sm">
           <Shield size={18} class="animate-spin" />
           QUERYING METRICS...
         </div>
       </div>
     {:else if logs.length === 0}
-      <div class="p-8 text-center text-neutral-500 flex flex-col items-center justify-center h-full gap-4">
+      <div class="p-8 text-center text-muted-foreground flex flex-col items-center justify-center h-full gap-4">
         <Shield size={32} class="opacity-30" />
         <p class="text-sm border border-border/50 p-2 rounded bg-card/60">No audit signatures discovered on this volume.</p>
       </div>
