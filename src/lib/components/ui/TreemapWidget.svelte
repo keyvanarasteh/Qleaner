@@ -46,10 +46,10 @@
              <span class="text-[10px] font-bold text-white/90 truncate px-1 drop-shadow-md tracking-wider uppercase select-none">{item.name}</span>
            {/if}
            
-           <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-neutral-900 border border-border text-foreground px-3 py-1.5 rounded-lg text-xs font-medium shadow-xl opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap flex items-center gap-2">
+           <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-background border border-border text-foreground px-3 py-1.5 rounded-lg text-xs font-medium shadow-xl opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap flex items-center gap-2">
               <span class="w-2 h-2 rounded-full {item.color || getColor(item.category, item.name)}"></span>
               {item.name} 
-              <span class="text-neutral-400 ml-1 font-mono">{formatBytes(item.size)}</span>
+              <span class="text-muted-foreground ml-1 font-mono">{formatBytes(item.size)}</span>
            </div>
         </div>
       {/each}
@@ -58,15 +58,15 @@
     <!-- Legend Grid Bounds -->
     <div class="flex flex-wrap gap-x-4 gap-y-2 mt-1">
       {#each items.slice(0, 6) as item}
-        <div class="flex items-center gap-2 text-xs text-neutral-400">
+        <div class="flex items-center gap-2 text-xs text-muted-foreground">
            <span class="w-3 h-3 rounded-md {item.color || getColor(item.category, item.name)} opacity-80"></span>
            <span class="truncate max-w-[120px]">{item.name}</span>
-           <span class="font-mono text-neutral-500">{((item.size / totalSize) * 100).toFixed(1)}%</span>
+           <span class="font-mono text-muted-foreground">{((item.size / totalSize) * 100).toFixed(1)}%</span>
         </div>
       {/each}
       {#if items.length > 6}
-        <div class="flex items-center gap-2 text-xs text-neutral-500 italic">
-          <span class="w-1.5 h-1.5 rounded-full bg-neutral-700"></span>
+        <div class="flex items-center gap-2 text-xs text-muted-foreground italic">
+          <span class="w-1.5 h-1.5 rounded-full bg-muted"></span>
           +{items.length - 6} more clusters
         </div>
       {/if}

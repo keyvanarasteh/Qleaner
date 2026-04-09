@@ -108,7 +108,7 @@
 <div class="flex-1 flex flex-col overflow-hidden bg-background h-full text-foreground relative">
 	
 	<!-- VSCode Editor Tab Bar -->
-	<div class="h-9 flex items-center bg-neutral-900 border-b border-border pl-2 shrink-0 select-none pt-1">
+	<div class="h-9 flex items-center bg-muted border-b border-border pl-2 shrink-0 select-none pt-1">
 		<div class="px-4 h-full flex items-center gap-2 bg-background border-x border-t border-border rounded-t-sm text-[13px] text-foreground font-medium relative top-px">
 			<BrainCircuit size={14} class="text-primary" />
 			<span>engine.heuristics</span>
@@ -135,12 +135,12 @@
             <category.icon class="w-6 h-6 {category.color}" />
             <h2 class="text-xl font-semibold">{category.title}</h2>
           </div>
-          <p class="text-sm text-neutral-400 mb-6 flex-1">{category.description}</p>
+          <p class="text-sm text-muted-foreground mb-6 flex-1">{category.description}</p>
           <div class="space-y-2">
             {#each category.items as item, i (i)}
-              <div class="flex flex-col p-2 bg-neutral-900/50 rounded-lg text-xs">
-                <span class="font-medium text-neutral-200">{item.name}</span>
-                <span class="text-neutral-500 font-mono mt-1 break-all">{item.path}</span>
+              <div class="flex flex-col p-2 bg-muted/50 rounded-lg text-xs">
+                <span class="font-medium text-foreground">{item.name}</span>
+                <span class="text-muted-foreground font-mono mt-1 break-all">{item.path}</span>
               </div>
             {/each}
           </div>
@@ -150,7 +150,7 @@
 
     <!-- Algorithm Workflow Diagram -->
     <div class="bg-card border border-border rounded-2xl overflow-hidden mt-12 shadow-sm" bind:this={mermaidContainer}>
-      <div class="bg-neutral-900/40 border-b border-border px-6 py-4 flex items-center justify-between">
+      <div class="bg-muted/40 border-b border-border px-6 py-4 flex items-center justify-between">
         <h2 class="text-xl font-semibold flex items-center gap-2">
           <BrainCircuit class="text-primary w-5 h-5" />
           Leftover Discovery Algorithm Pipeline

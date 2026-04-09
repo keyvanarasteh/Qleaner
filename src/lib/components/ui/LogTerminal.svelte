@@ -62,12 +62,12 @@
 <div class="w-full bg-card border-t border-border flex flex-col transition-all duration-300 {isExpanded ? 'h-48' : 'h-8'} z-[100]">
   <!-- Terminal Header -->
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-  <div class="h-8 flex items-center justify-between px-3 bg-neutral-900 border-b border-border/50 shrink-0 cursor-pointer select-none" onclick={() => isExpanded = !isExpanded}>
+  <div class="h-8 flex items-center justify-between px-3 bg-muted border-b border-border/50 shrink-0 cursor-pointer select-none" onclick={() => isExpanded = !isExpanded}>
     <div class="flex items-center gap-2">
-      <Terminal size={14} class="text-neutral-400" />
-      <span class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Terminal Output</span>
+      <Terminal size={14} class="text-muted-foreground" />
+      <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Terminal Output</span>
     </div>
-    <div class="flex items-center gap-2 text-neutral-500">
+    <div class="flex items-center gap-2 text-muted-foreground">
       <button class="hover:text-foreground transition-colors p-1" onclick={(e) => { e.stopPropagation(); logs = []; }} title="Clear Output">
         <Trash2 size={14} />
       </button>
@@ -91,7 +91,7 @@
         </div>
       {/each}
       {#if logs.length === 0}
-        <div class="text-neutral-600 italic">No output...</div>
+        <div class="text-muted-foreground italic">No output...</div>
       {/if}
     </div>
   {/if}

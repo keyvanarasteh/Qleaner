@@ -42,17 +42,17 @@
     <div class="relative z-10 h-full flex items-center justify-between px-4 pointer-events-none">
         <div class="flex items-center gap-2">
             <Monitor size={14} class="text-primary" />
-            <span class="text-xs font-semibold text-neutral-400 tracking-wide">QLEANER</span>
+            <span class="text-xs font-semibold text-muted-foreground tracking-wide">QLEANER</span>
         </div>
         
         <div class="flex items-center gap-1 pointer-events-auto">
-            <button onclick={() => getCurrentWindow().minimize()} class="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-foreground transition-colors" title="Minimize" aria-label="Minimize window">
+            <button onclick={() => getCurrentWindow().minimize()} class="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Minimize" aria-label="Minimize window">
                 <Minus size={14} />
             </button>
-            <button onclick={() => getCurrentWindow().toggleMaximize()} class="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-foreground transition-colors" title="Maximize" aria-label="Maximize window">
+            <button onclick={() => getCurrentWindow().toggleMaximize()} class="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Maximize" aria-label="Maximize window">
                 <Square size={14} />
             </button>
-            <button onclick={() => showCloseConfirm = true} class="p-1.5 rounded-md text-neutral-400 hover:bg-red-500 hover:text-white transition-colors" title="Close" aria-label="Close window">
+            <button onclick={() => showCloseConfirm = true} class="p-1.5 rounded-md text-muted-foreground hover:bg-red-500 hover:text-white transition-colors" title="Close" aria-label="Close window">
                 <X size={14} />
             </button>
         </div>
@@ -94,9 +94,9 @@
 <div class="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
   <div class="bg-card border border-border shadow-2xl rounded-lg p-6 max-w-sm w-full flex flex-col gap-4">
     <h3 class="text-lg font-semibold text-foreground">Exit Qleaner?</h3>
-    <p class="text-sm text-neutral-400">Are you sure you want to close the application? Any ongoing system scans will be terminated.</p>
+    <p class="text-sm text-muted-foreground">Are you sure you want to close the application? Any ongoing system scans will be terminated.</p>
     <div class="flex justify-end gap-2 mt-4">
-      <button onclick={() => showCloseConfirm = false} class="px-4 py-2 text-sm rounded-md bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-colors font-medium">Cancel</button>
+      <button onclick={() => showCloseConfirm = false} class="px-4 py-2 text-sm rounded-md bg-muted text-foreground hover:brightness-110 transition-colors font-medium">Cancel</button>
       <button onclick={() => getCurrentWindow().close()} class="px-4 py-2 text-sm rounded-md bg-red-600 hover:bg-red-500 text-white transition-colors font-medium">Close App</button>
     </div>
   </div>

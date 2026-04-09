@@ -44,7 +44,7 @@
 <div class="flex-1 flex flex-col overflow-hidden bg-background h-full text-foreground relative">
 	
 	<!-- VSCode Editor Tab Bar -->
-	<div class="h-9 flex items-center bg-neutral-900 border-b border-border pl-2 shrink-0 select-none pt-1">
+	<div class="h-9 flex items-center bg-muted border-b border-border pl-2 shrink-0 select-none pt-1">
 		<div class="px-4 h-full flex items-center gap-2 bg-background border-x border-t border-border rounded-t-sm text-[13px] text-foreground font-medium relative top-px">
 			<Shield size={14} class="text-primary" />
 			<span>audit.log</span>
@@ -77,7 +77,7 @@
     {:else}
       <table class="w-full text-left border-collapse min-w-[800px]">
         <thead>
-          <tr class="bg-neutral-900 border-b border-border sticky top-0 z-10 text-[11px] font-bold tracking-wider text-muted-foreground uppercase h-8">
+          <tr class="bg-muted border-b border-border sticky top-0 z-10 text-[11px] font-bold tracking-wider text-muted-foreground uppercase h-8">
             <th class="px-4 font-bold w-12 border-r border-border/40">ID</th>
             <th class="px-4 font-bold border-r border-border/40">Location Target</th>
             <th class="px-4 font-bold w-32 border-r border-border/40">Data Reclaimed</th>
@@ -87,11 +87,11 @@
         </thead>
         <tbody class="divide-y divide-border/20 text-xs">
           {#each logs as log (log.id)}
-            <tr class="hover:bg-neutral-800/80 transition-colors group h-8">
-              <td class="px-4 text-neutral-500 border-r border-border/10">{log.id}</td>
+            <tr class="hover:bg-muted/80 transition-colors group h-8">
+              <td class="px-4 text-muted-foreground border-r border-border/10">{log.id}</td>
               <td class="px-4 flex items-center gap-3 h-8 border-r border-border/10 w-full overflow-hidden">
                 <Trash2 size={12} class="text-red-400 shrink-0" />
-                <span class="truncate text-neutral-300 font-sans font-medium" title={log.path}>
+                <span class="truncate text-foreground font-sans font-medium" title={log.path}>
                   {log.path}
                 </span>
               </td>
@@ -105,7 +105,7 @@
                   {log.signature}
                 </code>
               </td>
-              <td class="px-4 text-right text-neutral-500 whitespace-nowrap">
+              <td class="px-4 text-right text-muted-foreground whitespace-nowrap">
                 <div class="flex items-center justify-end gap-2 text-[11px]">
                   {new Date(log.timestamp + 'Z').toLocaleString()}
                 </div>
