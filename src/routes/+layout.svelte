@@ -30,30 +30,32 @@
 <NeuralBootSequence onComplete={() => isBooted = true} />
 
 {#if isBooted}
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div 
-    class="h-10 w-full bg-background/80 backdrop-blur-md border-b border-border fixed top-0 left-0 flex items-center justify-between px-4 z-[900] select-none"
-    onpointerdown={(e) => {
-        if (e.buttons === 1 && !(e.target instanceof Element && e.target.closest('button'))) {
-            getCurrentWindow().startDragging();
-        }
-    }}
->
-    <div class="flex items-center gap-2 pointer-events-none">
-        <Monitor size={14} class="text-primary" />
-        <span class="text-xs font-semibold text-neutral-400 tracking-wide">QLEANER</span>
-    </div>
-    
-    <div class="flex items-center gap-2">
-        <button onclick={() => getCurrentWindow().minimize()} class="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-foreground transition-colors" title="Minimize">
-            <Minus size={14} />
-        </button>
-        <button onclick={() => getCurrentWindow().toggleMaximize()} class="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-foreground transition-colors" title="Maximize">
-            <Square size={14} />
-        </button>
-        <button onclick={() => getCurrentWindow().close()} class="p-1.5 rounded-md text-neutral-400 hover:bg-red-500 hover:text-white transition-colors" title="Close">
-            <X size={14} />
-        </button>
+<div class="h-10 w-full fixed top-0 left-0 z-[900] select-none">
+    <!-- Drag layer: sits behind everything, handles window dragging -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div 
+        class="absolute inset-0 bg-background/80 backdrop-blur-md border-b border-border"
+        onmousedown={() => getCurrentWindow().startDragging()}
+    ></div>
+
+    <!-- Foreground content: logo + window controls -->
+    <div class="relative z-10 h-full flex items-center justify-between px-4 pointer-events-none">
+        <div class="flex items-center gap-2">
+            <Monitor size={14} class="text-primary" />
+            <span class="text-xs font-semibold text-neutral-400 tracking-wide">QLEANER</span>
+        </div>
+        
+        <div class="flex items-center gap-1 pointer-events-auto">
+            <button onclick={() => getCurrentWindow().minimize()} class="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-foreground transition-colors" title="Minimize" aria-label="Minimize window">
+                <Minus size={14} />
+            </button>
+            <button onclick={() => getCurrentWindow().toggleMaximize()} class="p-1.5 rounded-md text-neutral-400 hover:bg-neutral-800 hover:text-foreground transition-colors" title="Maximize" aria-label="Maximize window">
+                <Square size={14} />
+            </button>
+            <button onclick={() => getCurrentWindow().close()} class="p-1.5 rounded-md text-neutral-400 hover:bg-red-500 hover:text-white transition-colors" title="Close" aria-label="Close window">
+                <X size={14} />
+            </button>
+        </div>
     </div>
 </div>
 {/if}
