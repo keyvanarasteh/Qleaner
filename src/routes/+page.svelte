@@ -241,7 +241,7 @@
 				</button>
 				<button 
 					disabled={cleanerStore.isScanning || cleanerStore.isCleaning} 
-					class="w-24 shrink-0 px-2 h-full hover:text-foreground text-left border-r border-border/30 focus:outline-none flex items-center gap-1 transition-colors hidden md:flex"
+					class="w-24 shrink-0 px-2 h-full hover:text-foreground text-left border-r border-border/30 focus:outline-none items-center gap-1 transition-colors hidden md:flex"
 					onclick={() => toggleSort('category')}
 					aria-label="Sort by category"
 				>
