@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 161 | **Done:** 121 | **Ongoing:** 0 | **Pending:** 40
+> **Total Tasks:** 162 | **Done:** 122 | **Ongoing:** 0 | **Pending:** 40
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -16,6 +16,7 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [x] **159.** **[UX FIX] Dashboard DOM Optimization:** Replaced visually heavy bento boxes with a dense Pro-minimalist datagrid. Debounced `$derived` array loops for active sorting payload so the frontend DOM stops thrashing during massive Rust telemetry dumps.
 - [x] **160.** **[UX FIX] Light Mode Semantic Synchronization:** Replaced global Svelte Tailwind literals (e.g. `bg-neutral-900`, `text-neutral-400`) securely using native theme primitives (`bg-card`, `text-muted-foreground`), fixing total Light Mode contrast blindness across all primary layouts.
 - [x] **161.** **[UX FIX] Compositor Scrolling Hardware Acceleration:** Eliminated Chromium scroll lag via optimized DOM boundaries (`transform: translateZ(0)`, `contain: content`, `will-change-scroll`) and stripped floating `backdrop-blur` layers to stabilize high-fps rendering.
+- [x] **162.** **[CI FIX] GitHub Actions Windows Compilation & Release Permissions:** Resolved GitHub Actions failure where Mac/Ubuntu runners lacked `contents: write` for release actions, and Windows runners failed to compile due to the `nix` and `sudo` crates strictly missing `cfg(unix)` restrictions in Cargo.toml.
 
 
 - [x] **149.** **[AUDIT FIX] Secure Shredder Directory Bypass:** The shredding loop in `clean_items` only shreds files at the root of a cache directory. Any deeply nested files within subdirectories are bypass-deleted via `remove_dir_all` without being shredded.
