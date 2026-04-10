@@ -11,7 +11,7 @@
 	"footer_iss": "Report Issue",
 	"footer_desc": "A cross-platform system utility built with Rust & Svelte 5.",
 	
-	"home_release_tag": "v1.0.0 is now available",
+	"home_release_tag": "v1.0.2 is now available",
 	"home_hero_1": "Reclaim",
 	"home_hero_2": "Disk Space.",
 	"home_hero_3": "Boost",
@@ -55,7 +55,7 @@
 
 	"dl_hero_title_1": "Download",
 	"dl_hero_title_2": "Qleaner",
-	"dl_hero_desc": "Choose your operating system below to get the latest stable version of Qleaner (v1.0.0). No installation required for portable formats.",
+	"dl_hero_desc": "Choose your operating system below to get the latest stable version of Qleaner (v1.0.2). No installation required for portable formats.",
 	"dl_card_format": "Format:",
 	"dl_card_arch": "Arch:",
 	"dl_btn_dl": "Download",
