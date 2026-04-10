@@ -1,6 +1,6 @@
 [package]
 name = "tauri-app"
-version = "0.1.1"
+version = "0.1.2"
 description = "Qleaner — Blazing Fast Cross-Platform System Utility & Disk Cleaner"
 authors = ["Keyvan Arasteh <keyvan.arasteh@istinye.edu.tr>"]
 edition = "2021"
