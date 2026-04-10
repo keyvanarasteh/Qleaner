@@ -1,4 +1,5 @@
 name: Release
+
 on:
   push:
     tags:
@@ -13,9 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest' # for Arm based macs (M1 and above).
+          - platform: 'macos-latest'
             args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest' # for Intel based macs.
+          - platform: 'macos-latest'
             args: '--target x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
             args: ''
@@ -25,20 +26,21 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: install dependencies (ubuntu only)
+      - name: Install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-        # webkit2gtk-4.0-dev is used by older versions of Tauri
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: install Rust stable
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
@@ -46,7 +48,57 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Generate changelog
+        id: changelog
+        shell: bash
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            COMMITS=$(git log --oneline --no-decorate -20)
+          else
+            COMMITS=$(git log --oneline --no-decorate "$PREV_TAG"..HEAD)
+          fi
+
+          # Build the release body
+          cat > release_body.md << 'HEADER'
+          ## 🧹 Qleaner — Cross-Platform System Utility & Disk Cleaner
+
+          Blazing fast, memory-safe system utility built with Rust, Svelte 5, and Tauri v2.
+
+          ### 📦 Platform Downloads
+
+          | Platform | Architecture | File |
+          |----------|-------------|------|
+          | 🐧 Linux | x86_64 | `.deb`, `.rpm`, `.AppImage` |
+          | 🪟 Windows | x86_64 | `.exe` (NSIS), `.msi` |
+          | 🍎 macOS | Apple Silicon (M1+) | `.dmg` |
+          | 🍎 macOS | Intel (x86_64) | `.dmg` |
+
+          ### 🔧 Installation
+
+          - **Linux**: Download `.AppImage` (universal) or `.deb`/`.rpm` for your distro
+          - **Windows**: Download `.exe` installer or `.msi` package
+          - **macOS**: Download the `.dmg` for your architecture (Apple Silicon or Intel)
+
+          > ⚠️ macOS builds are unsigned. Right-click → Open to bypass Gatekeeper on first launch.
+
+          HEADER
+
+          echo "### 📋 Changelog" >> release_body.md
+          echo "" >> release_body.md
+          echo "$COMMITS" | while IFS= read -r line; do
+            echo "- $line" >> release_body.md
+          done
+
+          # Set multiline output
+          {
+            echo "body<<RELEASE_EOF"
+            cat release_body.md
+            echo "RELEASE_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and Release Tauri app
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Apple signing secrets — uncomment when Apple Developer secrets are configured in GitHub
@@ -57,9 +109,9 @@ jobs:
           # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
+          tagName: v__VERSION__
           releaseName: 'Qleaner v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
+          releaseBody: ${{ steps.changelog.outputs.body }}
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
