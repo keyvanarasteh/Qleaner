@@ -1,0 +1,46 @@
+name: qleaner
+base: core22
+version: '1.0.0'
+summary: A high-performance, cross-platform system optimization tool.
+description: |
+  Qleaner is built with Rust, Tauri, and Svelte 5. It safely clears obsolete caches, leftover macOS containers, and system junk asynchronously without damaging vital system states.
+grade: stable
+confinement: strict
+
+architectures:
+  - build-on: amd64
+  - build-on: arm64
+
+apps:
+  qleaner:
+    command: usr/bin/qleaner
+    extensions: [gnome]
+    plugs:
+      - network
+      - network-bind
+      - home
+
+parts:
+  node-deps:
+    plugin: npm
+    source: .
+    npm-node-version: "20.10.0"
+
+  qleaner-gui:
+    after: [node-deps]
+    plugin: rust
+    source: src-tauri
+    override-build: |
+      npm run tauri build
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+      cp target/release/qleaner $CRAFT_PART_INSTALL/usr/bin/qleaner
+    build-packages:
+      - libwebkit2gtk-4.1-dev
+      - build-essential
+      - curl
+      - wget
+      - file
+      - libxdo-dev
+      - libssl-dev
+      - libayatana-appindicator3-dev
+      - librsvg2-dev
