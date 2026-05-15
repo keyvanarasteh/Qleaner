@@ -1,7 +1,7 @@
 # Qleaner: 100 Deep Implementations, Fixes, & Architecture Improvements
 
 > **📈 Progress Statistics**
-> **Total Tasks:** 162 | **Done:** 122 | **Ongoing:** 0 | **Pending:** 40
+> **Total Tasks:** 162 | **Done:** 127 | **Ongoing:** 0 | **Pending:** 35
 > *Note: Agents must update these stats continuously as `[x]` / `[/]` / `[ ]` statuses are achieved.*
 
 The current state of **Qleaner** is an MVP. While the integration between Tauri, Rust, and Svelte 5 is functioning, the application relies on synchronous looping, brute-force directory deletion, hardcoded generic paths, and a barebones UI loop.
@@ -51,11 +51,13 @@ Below are **100 required best implementations, fixes, and improvements** to tran
 - [ ] **119.** **OS Registry Repair (Reg):** Introduce distinct Windows registry scanning looking for invalid paths, ghost uninstaller references, and rogue COM keys (inspired by `Wise / Glary Utilities`).
 - [x] **21.** **Node.js Modules Sweeper:** Add dedicated scans for orphaned `node_modules` folders using ignore glob targeting within user space.
 - [x] **24.** **Rust Target Sweeper:** Detect redundant `target/debug` directories in inactive Rust projects using generic deep sweeping.
-- [ ] **27.** **macOS iOS Simulators:** Scan and clear outdated iOS simulator caches (`~/Library/Developer/CoreSimulator/Devices`).
-- [ ] **29.** **Windows Prefetch:** Add `C:\Windows\Prefetch` analysis.
+- [x] **27.** **macOS iOS Simulators:** Scan and clear outdated iOS simulator caches (`~/Library/Developer/CoreSimulator/Devices`).
+- [x] **61.** **CLI Tool Cleanup:** Support clearing caches for Gradle, Maven, Poetry, and Pip.
+- [x] **62.** **Virtual Machine Detection:** Detect large VM images (.pvm, .vmwarevm, .vbox).
 - [ ] **30.** **Linux Journalctl Size:** Scan via `journalctl --disk-usage` and offer to vacuum logs older than X days.
 - [ ] **31.** **Linux Flatpak/Snap Leftovers:** Target `.var/app/` caches and `snap` leftover blobs.
-- [ ] **32.** **Browser Forensic Cache:** Add distinct targets for Chrome, Firefox, Safari, Edge caches, separate from generic "User Caches".
+- [x] **32.** **Browser Forensic Cache:** Add distinct targets for Chrome, Firefox, Safari, Edge caches, separate from generic "User Caches".
+- [x] **33.** **Homebrew Orphan Scanning:** Detect and suggest removal of unused Homebrew formulae (`brew leaves`).
 - [ ] **34.** **Empty Directory Sweeper:** Add an optional pass that identifies deeply nested, entirely empty directory trees and prunes them.
 - [ ] **36.** **Time-based Filtering:** Allow the user to specify "Only clean files older than X days" (e.g., keep caches from the last 24 hours).
 - [ ] **38.** **Configurable Ignoring:** Add a global `.qleanerignore` list to explicitly block directories from ever being scanned or listed.

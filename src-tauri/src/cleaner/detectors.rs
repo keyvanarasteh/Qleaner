@@ -5,6 +5,7 @@ use regex::Regex;
 
 use super::models::{CacheLocation, LeftoverItem};
 use super::scanner::{get_directory_size, human_readable_size};
+use tokio_util::sync::CancellationToken;
 
 pub fn get_home() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"))
@@ -789,4 +790,815 @@ pub fn detect_cache_orphans(
         }
     }
     orphans
+}
+
+// ─── INSTALLED / HIDDEN APPS ──────────────────────────────────────────────────
+
+/// Returns all `.app` bundles found in standard and non-standard locations,
+/// including hidden dot-prefixed apps and those buried under ~/Applications.
+pub fn detect_installed_apps() -> Vec<LeftoverItem> {
+    let mut apps = Vec::new();
+    let home = get_home();
+
+    let search_paths = vec![
+        PathBuf::from("/Applications"),
+        PathBuf::from("/System/Applications"),
+        home.join("Applications"),
+        home.join("Desktop"),
+        home.join("Downloads"),
+    ];
+
+    for base in &search_paths {
+        let Ok(entries) = std::fs::read_dir(base) else { continue };
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !name.ends_with(".app") {
+                continue;
+            }
+            let plist_path = entry.path().join("Contents").join("Info.plist");
+            let bundle_id = parse_plist_bundle_id(&plist_path)
+                .unwrap_or_else(|| name.trim_end_matches(".app").to_string());
+            let size = get_directory_size(&entry.path(), CancellationToken::new());
+            apps.push(LeftoverItem {
+                id: format!("app_{}", bundle_id),
+                path: entry.path().to_string_lossy().to_string(),
+                name: name.trim_end_matches(".app").to_string(),
+                bundle_id: bundle_id.clone(),
+                detection_source: "installed_app_scan".to_string(),
+                category: "Installed Apps".to_string(),
+                confidence: "high".to_string(),
+                hint: format!("Installed application '{}' at {:?}.", name, base),
+                size,
+                size_human: human_readable_size(size),
+                selected: false,
+            });
+        }
+    }
+    apps
+}
+
+/// Finds hidden `.app` bundles — dot-prefixed or buried inside hidden directories.
+pub fn detect_hidden_apps() -> Vec<LeftoverItem> {
+    let mut apps = Vec::new();
+    let home = get_home();
+
+    // Common hiding spots
+    let search_roots = vec![
+        home.clone(),
+        home.join("Library"),
+        home.join(".local"),
+        home.join(".config"),
+    ];
+
+    for root in &search_roots {
+        let Ok(entries) = std::fs::read_dir(root) else { continue };
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            let is_hidden_dir = name.starts_with('.');
+            let is_app_bundle = name.ends_with(".app");
+
+            if !is_app_bundle && !is_hidden_dir {
+                continue;
+            }
+
+            let target_path = if is_hidden_dir {
+                // Peek one level inside hidden dirs for .app bundles
+                let Ok(inner) = std::fs::read_dir(entry.path()) else { continue };
+                let mut found = vec![];
+                for inner_entry in inner.flatten() {
+                    let inner_name = inner_entry.file_name().to_string_lossy().to_string();
+                    if inner_name.ends_with(".app") {
+                        found.push(inner_entry.path());
+                    }
+                }
+                if found.is_empty() { continue; }
+                found[0].clone()
+            } else {
+                entry.path()
+            };
+
+            let app_name = target_path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .trim_end_matches(".app")
+                .to_string();
+            let plist_path = target_path.join("Contents").join("Info.plist");
+            let bundle_id = parse_plist_bundle_id(&plist_path).unwrap_or_else(|| app_name.clone());
+            let size = get_directory_size(&target_path, CancellationToken::new());
+
+            apps.push(LeftoverItem {
+                id: format!("hidden_app_{bundle_id}"),
+                path: target_path.to_string_lossy().to_string(),
+                name: app_name.clone(),
+                bundle_id,
+                detection_source: "hidden_app_scan".to_string(),
+                category: "Hidden Apps".to_string(),
+                confidence: "medium".to_string(),
+                hint: format!("'{}' is installed in a non-standard or hidden location.", app_name),
+                size,
+                size_human: human_readable_size(size),
+                selected: false,
+            });
+        }
+    }
+    apps
+}
+
+// ─── APP DATA ─────────────────────────────────────────────────────────────────
+
+/// Scans ~/Library/Application Support for large app data folders that are NOT
+/// orphans — i.e. the owning app IS installed but has accumulated bulk data.
+pub fn detect_large_app_data(
+    installed_ids: &HashSet<String>,
+    threshold_bytes: u64,
+) -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    let app_support_path = get_home().join("Library").join("Application Support");
+
+    let Ok(entries) = std::fs::read_dir(&app_support_path) else { return items };
+
+    for entry in entries.flatten() {
+        let Ok(meta) = entry.metadata() else { continue };
+        if !meta.is_dir() { continue; }
+
+        let folder_name = entry.file_name().to_string_lossy().to_string();
+        let lower = folder_name.to_lowercase();
+
+        // Only consider folders belonging to known installed apps
+        let is_known = installed_ids.iter().any(|id| {
+            lower.contains(id) || id.contains(&lower) || {
+                let parts: Vec<&str> = id.split('.').collect();
+                parts.iter().any(|p| p.to_lowercase() == lower)
+            }
+        });
+        if !is_known { continue; }
+
+        let size = get_directory_size(&entry.path(), CancellationToken::new());
+        if size < threshold_bytes { continue; }
+
+        items.push(LeftoverItem {
+            id: format!("appdata_{folder_name}"),
+            path: entry.path().to_string_lossy().to_string(),
+            name: folder_name.clone(),
+            bundle_id: format!("*.{folder_name}"),
+            detection_source: "app_data_scan".to_string(),
+            category: "App Data".to_string(),
+            confidence: "medium".to_string(),
+            hint: format!(
+                "'{}' has accumulated {} of app data. Review before cleaning.",
+                folder_name,
+                human_readable_size(size)
+            ),
+            size,
+            size_human: human_readable_size(size),
+            selected: false,
+        });
+    }
+    items
+}
+
+// ─── TEMP DATA ────────────────────────────────────────────────────────────────
+
+/// Finds leftover temp files/dirs in common temp locations beyond std::env::temp_dir().
+pub fn detect_temp_data() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    let home = get_home();
+
+    let temp_paths: Vec<PathBuf> = vec![
+        std::env::temp_dir(),
+        PathBuf::from("/private/tmp"),
+        PathBuf::from("/private/var/folders"),
+        home.join(".tmp"),
+        home.join("tmp"),
+    ];
+
+    for base in &temp_paths {
+        let Ok(entries) = std::fs::read_dir(base) else { continue };
+        for entry in entries.flatten() {
+            let Ok(meta) = entry.metadata() else { continue };
+            let name = entry.file_name().to_string_lossy().to_string();
+
+            // Skip active lock/socket files
+            if name.ends_with(".lock") || name.ends_with(".sock") || name.ends_with(".pid") {
+                continue;
+            }
+
+            let size = if meta.is_dir() {
+                get_directory_size(&entry.path(), CancellationToken::new())
+            } else {
+                meta.len()
+            };
+
+            if size < 1024 { continue; } // skip tiny noise
+
+            items.push(LeftoverItem {
+                id: format!("tmp_{}_{}", base.file_name().unwrap_or_default().to_string_lossy(), name),
+                path: entry.path().to_string_lossy().to_string(),
+                name: name.clone(),
+                bundle_id: String::new(),
+                detection_source: "temp_data_scan".to_string(),
+                category: "Temp Data".to_string(),
+                confidence: "low".to_string(),
+                hint: format!("Temporary file/folder '{}' in {:?}.", name, base),
+                size,
+                size_human: human_readable_size(size),
+                selected: false,
+            });
+        }
+    }
+    items
+}
+
+// ─── LIBRARIES ────────────────────────────────────────────────────────────────
+
+/// Detects stale or orphaned dynamic libraries (.dylib) and frameworks
+/// in ~/Library/Frameworks and /Library/Frameworks whose bundle IDs
+/// do not match any installed application.
+pub fn detect_orphaned_libraries(installed_ids: &HashSet<String>) -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    let home = get_home();
+
+    let lib_paths = vec![
+        home.join("Library/Frameworks"),
+        PathBuf::from("/Library/Frameworks"),
+        home.join("Library/PrivateFrameworks"),
+        home.join(".local/lib"),
+        home.join("lib"),
+    ];
+
+    for base in &lib_paths {
+        let Ok(entries) = std::fs::read_dir(base) else { continue };
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            let lower = name.to_lowercase();
+            let is_framework = name.ends_with(".framework");
+            let is_dylib = name.ends_with(".dylib") || name.ends_with(".so");
+
+            if !is_framework && !is_dylib { continue; }
+
+            // Skip system-owned items
+            if lower.starts_with("com.apple") || lower.starts_with("libsystem") { continue; }
+
+            let stem = name
+                .trim_end_matches(".framework")
+                .trim_end_matches(".dylib")
+                .trim_end_matches(".so")
+                .to_lowercase();
+
+            let is_orphan = !installed_ids.iter().any(|id| {
+                id.contains(&stem) || stem.contains(id)
+            });
+            if !is_orphan { continue; }
+
+            let Ok(meta) = entry.metadata() else { continue };
+            let size = if meta.is_dir() {
+                get_directory_size(&entry.path(), CancellationToken::new())
+            } else {
+                meta.len()
+            };
+
+            items.push(LeftoverItem {
+                id: format!("lib_{stem}"),
+                path: entry.path().to_string_lossy().to_string(),
+                name: name.clone(),
+                bundle_id: stem.clone(),
+                detection_source: "library_scan".to_string(),
+                category: "Libraries".to_string(),
+                confidence: "medium".to_string(),
+                hint: format!("Framework/library '{}' has no matching installed app.", name),
+                size,
+                size_human: human_readable_size(size),
+                selected: false,
+            });
+        }
+    }
+    items
+}
+
+// ─── PACKAGES ─────────────────────────────────────────────────────────────────
+
+/// Detects orphaned or stale Homebrew packages using `brew` CLI.
+pub fn detect_homebrew_orphans() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+
+    // `brew leaves` lists installed formulae not required by another formula
+    let Ok(output) = Command::new("brew").args(["leaves", "--installed-as-dependency"]).output()
+    else { return items };
+
+    if !output.status.success() { return items; }
+    let Ok(stdout) = String::from_utf8(output.stdout) else { return items };
+
+    for formula in stdout.lines() {
+        let formula = formula.trim();
+        if formula.is_empty() { continue; }
+
+        // Get the install path size via `brew --prefix <formula>`
+        let prefix = Command::new("brew")
+            .args(["--prefix", formula])
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default();
+
+        let size = if !prefix.is_empty() {
+            get_directory_size(Path::new(&prefix), CancellationToken::new())
+        } else {
+            0
+        };
+
+        items.push(LeftoverItem {
+            id: format!("brew_orphan_{formula}"),
+            path: if prefix.is_empty() { format!("brew://{formula}") } else { prefix },
+            name: formula.to_string(),
+            bundle_id: formula.to_string(),
+            detection_source: "homebrew_scan".to_string(),
+            category: "Packages".to_string(),
+            confidence: "medium".to_string(),
+            hint: format!("Homebrew formula '{}' is installed as a dependency of nothing. Safe to uninstall.", formula),
+            size,
+            size_human: human_readable_size(size),
+            selected: false,
+        });
+    }
+    items
+}
+
+/// Detects globally installed pip packages that are not part of the system Python.
+pub fn detect_pip_global_packages() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    let home = get_home();
+
+    let candidates = vec![
+        home.join(".local/lib"),
+        PathBuf::from("/usr/local/lib"),
+    ];
+
+    for base in &candidates {
+        let Ok(entries) = std::fs::read_dir(base) else { continue };
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            // e.g. python3.11, python3.12 ...
+            if !name.starts_with("python") { continue; }
+            let site_packages = entry.path().join("site-packages");
+            if !site_packages.exists() { continue; }
+
+            let size = get_directory_size(&site_packages, CancellationToken::new());
+            if size < 1024 * 1024 { continue; } // skip if < 1 MB
+
+            items.push(LeftoverItem {
+                id: format!("pip_sitepackages_{name}"),
+                path: site_packages.to_string_lossy().to_string(),
+                name: format!("{name} site-packages"),
+                bundle_id: name.clone(),
+                detection_source: "pip_scan".to_string(),
+                category: "Packages".to_string(),
+                confidence: "low".to_string(),
+                hint: format!("Global pip packages for {}. Use `pip list` to audit before cleaning.", name),
+                size,
+                size_human: human_readable_size(size),
+                selected: false,
+            });
+        }
+    }
+    items
+}
+
+/// Detects globally installed Ruby gems outside the system Ruby.
+pub fn detect_gem_packages() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    let home = get_home();
+
+    let gem_home = home.join(".gem");
+    if !gem_home.exists() { return items; }
+
+    let Ok(entries) = std::fs::read_dir(&gem_home) else { return items };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+        // e.g. ruby/3.2.0
+        if !name.starts_with("ruby") { continue; }
+        let size = get_directory_size(&entry.path(), CancellationToken::new());
+        if size == 0 { continue; }
+
+        items.push(LeftoverItem {
+            id: format!("gem_{name}"),
+            path: entry.path().to_string_lossy().to_string(),
+            name: format!("Ruby Gems ({name})"),
+            bundle_id: name.clone(),
+            detection_source: "gem_scan".to_string(),
+            category: "Packages".to_string(),
+            confidence: "low".to_string(),
+            hint: format!("User-installed Ruby gems for {}. Run `gem list` to audit.", name),
+            size,
+            size_human: human_readable_size(size),
+            selected: false,
+        });
+    }
+    items
+}
+
+// ─── CLI TOOLS ────────────────────────────────────────────────────────────────
+
+/// Detects leftover CLI tool caches and data directories for common dev tools.
+pub fn detect_cli_tool_data() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    let home = get_home();
+
+    struct CliEntry {
+        id: &'static str,
+        rel_path: &'static str,    // relative to home
+        name: &'static str,
+        hint: &'static str,
+        impact: &'static str,
+        risk: &'static str,
+        check_cmd: Option<&'static str>, // optional binary to verify it's installed
+    }
+
+    let entries = vec![
+        CliEntry { id: "gradle_caches",    rel_path: ".gradle/caches",                    name: "Gradle Build Caches",      hint: "Accumulated Gradle dependency and build caches.",          impact: "Next build re-downloads dependencies.",       risk: "low",    check_cmd: Some("gradle") },
+        CliEntry { id: "maven_repo",       rel_path: ".m2/repository",                    name: "Maven Local Repository",   hint: "All Maven artifacts ever downloaded.",                     impact: "Maven will re-fetch on next build.",           risk: "low",    check_cmd: Some("mvn") },
+        CliEntry { id: "ivy2_cache",       rel_path: ".ivy2/cache",                       name: "Ivy2 Cache",               hint: "Scala/sbt transitive dependency cache.",                   impact: "sbt will re-resolve dependencies.",            risk: "low",    check_cmd: Some("sbt") },
+        CliEntry { id: "coursier_cache",   rel_path: ".cache/coursier",                   name: "Coursier Cache",           hint: "Scala Coursier artifact cache.",                           impact: "Re-downloads on next resolution.",             risk: "low",    check_cmd: Some("cs") },
+        CliEntry { id: "poetry_cache",     rel_path: "Library/Caches/pypoetry",           name: "Poetry Package Cache",     hint: "Poetry virtual envs and package artifacts.",               impact: "Poetry will recreate envs.",                   risk: "low",    check_cmd: Some("poetry") },
+        CliEntry { id: "pip_cache",        rel_path: "Library/Caches/pip",                name: "pip Download Cache",       hint: "Wheel and source archives cached by pip.",                 impact: "pip will re-download on next install.",        risk: "low",    check_cmd: Some("pip3") },
+        CliEntry { id: "composer_cache",   rel_path: ".composer/cache",                   name: "Composer Cache",           hint: "PHP Composer package download cache.",                     impact: "Composer will re-fetch packages.",             risk: "low",    check_cmd: Some("composer") },
+        CliEntry { id: "go_mod_cache",     rel_path: "go/pkg/mod/cache",                  name: "Go Module Cache",          hint: "Downloaded Go module archives.",                           impact: "go build will re-fetch missing modules.",      risk: "low",    check_cmd: Some("go") },
+        CliEntry { id: "rubygems_cache",   rel_path: ".gem/specs",                        name: "RubyGems Spec Cache",      hint: "Gem specification metadata cache.",                        impact: "gem update --system will regenerate.",         risk: "low",    check_cmd: Some("gem") },
+        CliEntry { id: "ansible_tmp",      rel_path: ".ansible/tmp",                      name: "Ansible Temp Files",       hint: "Leftover temp files from Ansible runs.",                   impact: "Safe to delete.",                              risk: "low",    check_cmd: Some("ansible") },
+        CliEntry { id: "terraform_cache",  rel_path: ".terraform.d/plugin-cache",         name: "Terraform Plugin Cache",   hint: "Provider plugins cached by Terraform.",                    impact: "terraform init will re-download providers.",   risk: "low",    check_cmd: Some("terraform") },
+        CliEntry { id: "pulumi_cache",     rel_path: ".pulumi/plugins",                   name: "Pulumi Plugin Cache",      hint: "Pulumi provider plugins.",                                 impact: "pulumi up will re-download plugins.",          risk: "low",    check_cmd: Some("pulumi") },
+        CliEntry { id: "k9s_cache",        rel_path: ".k9s",                              name: "k9s Config & Cache",       hint: "k9s TUI Kubernetes viewer config and screen dumps.",       impact: "Config will reset to defaults.",               risk: "medium", check_cmd: Some("k9s") },
+        CliEntry { id: "helm_cache",       rel_path: "Library/Caches/helm",               name: "Helm Chart Cache",         hint: "Downloaded Helm chart archives.",                          impact: "helm install will re-download charts.",        risk: "low",    check_cmd: Some("helm") },
+        CliEntry { id: "gh_hosts",         rel_path: ".config/gh",                        name: "GitHub CLI Config",        hint: "GitHub CLI authentication tokens and hosts.",               impact: "You will need to re-authenticate with gh.",    risk: "medium", check_cmd: Some("gh") },
+        CliEntry { id: "aws_cli_cache",    rel_path: ".aws/cli/cache",                    name: "AWS CLI Credential Cache", hint: "Temporary STS tokens from AWS SSO/MFA flows.",             impact: "You will need to re-authenticate with AWS.",  risk: "medium", check_cmd: Some("aws") },
+        CliEntry { id: "gcloud_cache",     rel_path: ".config/gcloud",                    name: "gcloud Config & Cache",    hint: "Google Cloud SDK config, credentials, and cache.",         impact: "gcloud will prompt for re-authentication.",   risk: "medium", check_cmd: Some("gcloud") },
+        CliEntry { id: "azure_cli_cache",  rel_path: ".azure",                            name: "Azure CLI Cache",          hint: "Azure CLI tokens and local cache.",                        impact: "az login required after clearing.",           risk: "medium", check_cmd: Some("az") },
+        CliEntry { id: "kubectl_cache",    rel_path: ".kube/cache",                       name: "kubectl Discovery Cache",  hint: "Kubernetes API discovery cache.",                          impact: "kubectl will re-discover API on next command.", risk: "low",   check_cmd: Some("kubectl") },
+        CliEntry { id: "minikube_data",    rel_path: ".minikube",                         name: "Minikube Cluster Data",    hint: "Local Kubernetes cluster VMs and machine certs.",          impact: "All local clusters will be lost.",             risk: "high",   check_cmd: Some("minikube") },
+        CliEntry { id: "venv_dirs",        rel_path: ".virtualenvs",                      name: "virtualenvwrapper Envs",   hint: "Python virtual environments (virtualenvwrapper).",         impact: "Environments must be recreated.",              risk: "medium", check_cmd: Some("workon") },
+        CliEntry { id: "pyenv_versions",   rel_path: ".pyenv/versions",                   name: "pyenv Python Versions",    hint: "Python versions installed via pyenv.",                     impact: "pyenv install will re-download them.",        risk: "medium", check_cmd: Some("pyenv") },
+        CliEntry { id: "nvm_cache",        rel_path: ".nvm/versions",                     name: "nvm Node.js Versions",     hint: "Node.js versions installed via nvm.",                      impact: "nvm install will re-download them.",          risk: "medium", check_cmd: Some("nvm") },
+        CliEntry { id: "rbenv_versions",   rel_path: ".rbenv/versions",                   name: "rbenv Ruby Versions",      hint: "Ruby versions installed via rbenv.",                       impact: "rbenv install will re-download them.",        risk: "medium", check_cmd: Some("rbenv") },
+        CliEntry { id: "rustup_toolchains",rel_path: ".rustup/toolchains",                name: "Rustup Toolchains",        hint: "Rust compiler toolchains managed by rustup.",              impact: "rustup toolchain install will re-download.", risk: "medium", check_cmd: Some("rustup") },
+        CliEntry { id: "rustup_tmp",       rel_path: ".rustup/tmp",                       name: "Rustup Temp Downloads",    hint: "Partial or leftover rustup download artifacts.",           impact: "Safe to delete.",                             risk: "low",    check_cmd: Some("rustup") },
+        CliEntry { id: "bun_cache",        rel_path: ".bun/install/cache",                name: "Bun Package Cache",        hint: "Bun global package download cache.",                       impact: "Bun re-downloads on next install.",           risk: "low",    check_cmd: Some("bun") },
+        CliEntry { id: "deno_cache",       rel_path: ".cache/deno",                       name: "Deno Module Cache",        hint: "Deno remote modules and compiled output.",                 impact: "Deno will re-fetch remote imports.",          risk: "low",    check_cmd: Some("deno") },
+        CliEntry { id: "wasm_pack_cache",  rel_path: ".cache/wasm-pack",                  name: "wasm-pack Cache",          hint: "Downloaded wasm-bindgen and wasm-opt binaries.",           impact: "wasm-pack will re-download tooling.",         risk: "low",    check_cmd: Some("wasm-pack") },
+        CliEntry { id: "sccache_data",     rel_path: ".cache/sccache",                    name: "sccache Compiler Cache",   hint: "Shared compilation cache for Rust/C/C++.",                 impact: "Builds won't benefit from sccache hits.",     risk: "low",    check_cmd: Some("sccache") },
+        CliEntry { id: "ccache_data",      rel_path: ".ccache",                           name: "ccache Compiler Cache",    hint: "C/C++ compiler artifact cache.",                           impact: "GCC/Clang builds slower until cache warms.",  risk: "low",    check_cmd: Some("ccache") },
+        CliEntry { id: "jest_cache",       rel_path: ".jest-cache",                       name: "Jest Transform Cache",     hint: "Babel/SWC transform cache used by Jest.",                  impact: "First jest run will be slower.",              risk: "low",    check_cmd: None },
+        CliEntry { id: "eslint_cache",     rel_path: ".eslintcache",                      name: "ESLint Cache",             hint: "Per-file lint result cache.",                              impact: "ESLint re-lints all files on next run.",      risk: "low",    check_cmd: None },
+        CliEntry { id: "prettier_cache",   rel_path: ".prettiercache",                    name: "Prettier Cache",           hint: "Per-file format result cache.",                            impact: "Prettier re-formats all files on next run.",  risk: "low",    check_cmd: None },
+        CliEntry { id: "turbo_cache",      rel_path: ".turbo",                            name: "Turborepo Local Cache",    hint: "Turborepo task output cache.",                             impact: "turbo re-executes all tasks on next run.",    risk: "low",    check_cmd: Some("turbo") },
+        CliEntry { id: "nx_cache",         rel_path: ".nx/cache",                         name: "Nx Local Cache",           hint: "Nx monorepo task computation cache.",                      impact: "Nx re-runs affected tasks on next build.",    risk: "low",    check_cmd: Some("nx") },
+    ];
+
+    for cli in &entries {
+        // If a binary check is requested, skip if not found in PATH
+        if let Some(cmd) = cli.check_cmd {
+            if Command::new("which").arg(cmd).output()
+                .map(|o| !o.status.success())
+                .unwrap_or(true)
+            {
+                // Also try `command -v` as fallback for shell builtins like `nvm`
+                if Command::new("sh").args(["-c", &format!("command -v {cmd}")])
+                    .output()
+                    .map(|o| !o.status.success())
+                    .unwrap_or(true)
+                {
+                    continue;
+                }
+            }
+        }
+
+        let full_path = home.join(cli.rel_path);
+        if !full_path.exists() { continue; }
+
+        let size = if full_path.is_dir() {
+            get_directory_size(&full_path, CancellationToken::new())
+        } else {
+            std::fs::metadata(&full_path).map(|m| m.len()).unwrap_or(0)
+        };
+        if size == 0 { continue; }
+
+        items.push(LeftoverItem {
+            id: cli.id.to_string(),
+            path: full_path.to_string_lossy().to_string(),
+            name: cli.name.to_string(),
+            bundle_id: cli.id.to_string(),
+            detection_source: "cli_tool_scan".to_string(),
+            category: "CLI Tools".to_string(),
+            confidence: if cli.risk == "low" { "high" } else { "medium" }.to_string(),
+            hint: format!("{}  Impact: {}  Risk: {}", cli.hint, cli.impact, cli.risk),
+            size,
+            size_human: human_readable_size(size),
+            selected: cli.risk == "low",
+        });
+    }
+    items
+}
+
+// ─── BROWSER PROFILES ─────────────────────────────────────────────────────────
+
+/// Detects caches for all major browsers across profiles.
+pub fn detect_browser_caches() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    let home = get_home();
+    let os = std::env::consts::OS;
+
+    struct BrowserEntry {
+        id: &'static str,
+        name: &'static str,
+        rel_path_mac: &'static str,
+        rel_path_linux: &'static str,
+        risk: &'static str,
+        hint: &'static str,
+        impact: &'static str,
+    }
+
+    let browsers = vec![
+        BrowserEntry { id: "firefox_cache",     name: "Firefox Cache",           rel_path_mac: "Library/Caches/Firefox",                         rel_path_linux: ".cache/mozilla/firefox",            risk: "low",    hint: "Firefox HTTP response and media cache.",          impact: "Pages reload slower until cache warms." },
+        BrowserEntry { id: "safari_cache",       name: "Safari Cache",            rel_path_mac: "Library/Caches/com.apple.Safari",                rel_path_linux: "",                                  risk: "low",    hint: "Safari WebKit cache.",                           impact: "Safari reloads resources on next visit." },
+        BrowserEntry { id: "brave_cache",        name: "Brave Cache",             rel_path_mac: "Library/Caches/BraveSoftware/Brave-Browser",     rel_path_linux: ".cache/BraveSoftware/Brave-Browser", risk: "low",   hint: "Brave browser HTTP cache.",                      impact: "Browser re-downloads assets on next visit." },
+        BrowserEntry { id: "edge_cache",         name: "Microsoft Edge Cache",    rel_path_mac: "Library/Caches/Microsoft Edge",                  rel_path_linux: ".cache/microsoft-edge",             risk: "low",    hint: "Edge Chromium HTTP cache.",                      impact: "Edge re-downloads assets on next visit." },
+        BrowserEntry { id: "opera_cache",        name: "Opera Cache",             rel_path_mac: "Library/Caches/com.operasoftware.Opera",         rel_path_linux: ".cache/opera",                      risk: "low",    hint: "Opera browser HTTP cache.",                      impact: "Opera re-downloads assets on next visit." },
+        BrowserEntry { id: "vivaldi_cache",      name: "Vivaldi Cache",           rel_path_mac: "Library/Caches/Vivaldi",                         rel_path_linux: ".config/vivaldi/Default/Cache",     risk: "low",    hint: "Vivaldi browser HTTP cache.",                    impact: "Vivaldi re-downloads assets on next visit." },
+        BrowserEntry { id: "chrome_cache",       name: "Chrome HTTP Cache",       rel_path_mac: "Library/Caches/Google/Chrome/Default/Cache",     rel_path_linux: ".cache/google-chrome/Default/Cache", risk: "low",  hint: "Chrome HTTP response cache.",                    impact: "Chrome re-downloads assets on next visit." },
+    ];
+
+    for b in &browsers {
+        let rel = if os == "macos" { b.rel_path_mac } else { b.rel_path_linux };
+        if rel.is_empty() { continue; }
+        let full_path = home.join(rel);
+        if !full_path.exists() { continue; }
+
+        let size = get_directory_size(&full_path, CancellationToken::new());
+        if size < 1024 * 1024 { continue; } // skip < 1 MB
+
+        items.push(LeftoverItem {
+            id: b.id.to_string(),
+            path: full_path.to_string_lossy().to_string(),
+            name: b.name.to_string(),
+            bundle_id: b.id.to_string(),
+            detection_source: "browser_cache_scan".to_string(),
+            category: "Browsers".to_string(),
+            confidence: "high".to_string(),
+            hint: format!("{}  Impact: {}  Risk: {}", b.hint, b.impact, b.risk),
+            size,
+            size_human: human_readable_size(size),
+            selected: b.risk == "low",
+        });
+    }
+    items
+}
+
+// ─── CRASH REPORTERS & DIAGNOSTICS ────────────────────────────────────────────
+
+/// Finds accumulated crash reports and diagnostic submissions.
+pub fn detect_crash_reports() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    let home = get_home();
+
+    let report_paths = vec![
+        (home.join("Library/Logs/DiagnosticReports"), "User Diagnostic Reports"),
+        (PathBuf::from("/Library/Logs/DiagnosticReports"), "System Diagnostic Reports"),
+        (home.join("Library/Logs/CrashReporter"), "CrashReporter Logs"),
+        (home.join(".local/share/apport"), "Apport Crash Reports"),   // Linux
+        (PathBuf::from("/var/crash"), "System Crash Dumps"),           // Linux
+    ];
+
+    for (path, label) in &report_paths {
+        if !path.exists() { continue; }
+        let size = get_directory_size(path, CancellationToken::new());
+        if size == 0 { continue; }
+
+        items.push(LeftoverItem {
+            id: format!("crash_{}", path.file_name().unwrap_or_default().to_string_lossy()),
+            path: path.to_string_lossy().to_string(),
+            name: label.to_string(),
+            bundle_id: String::new(),
+            detection_source: "crash_report_scan".to_string(),
+            category: "Diagnostics".to_string(),
+            confidence: "high".to_string(),
+            hint: format!("{label}. Safe to delete unless actively debugging a crash."),
+            size,
+            size_human: human_readable_size(size),
+            selected: true,
+        });
+    }
+    items
+}
+
+// ─── XCODE / SIMULATOR ────────────────────────────────────────────────────────
+
+/// macOS-only: Detects stale iOS/watchOS/tvOS simulators and device support files.
+pub fn detect_xcode_simulators() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    if std::env::consts::OS != "macos" { return items; }
+    let home = get_home();
+
+    let sim_path = home.join("Library/Developer/CoreSimulator/Devices");
+    if sim_path.exists() {
+        let size = get_directory_size(&sim_path, CancellationToken::new());
+        items.push(LeftoverItem {
+            id: "xcode_simulators".to_string(),
+            path: sim_path.to_string_lossy().to_string(),
+            name: "iOS/watchOS Simulators".to_string(),
+            bundle_id: "com.apple.CoreSimulator".to_string(),
+            detection_source: "xcode_scan".to_string(),
+            category: "Developer".to_string(),
+            confidence: "high".to_string(),
+            hint: "Simulator device images. Run `xcrun simctl delete unavailable` to prune stale ones.".to_string(),
+            size,
+            size_human: human_readable_size(size),
+            selected: false,
+        });
+    }
+
+    let device_support = home.join("Library/Developer/Xcode/iOS DeviceSupport");
+    if device_support.exists() {
+        let Ok(entries) = std::fs::read_dir(&device_support) else { return items };
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            let size = get_directory_size(&entry.path(), CancellationToken::new());
+            if size == 0 { continue; }
+            items.push(LeftoverItem {
+                id: format!("xcode_devicesupport_{}", name.replace(' ', "_")),
+                path: entry.path().to_string_lossy().to_string(),
+                name: format!("iOS Device Support ({name})"),
+                bundle_id: "com.apple.Xcode.DeviceSupport".to_string(),
+                detection_source: "xcode_scan".to_string(),
+                category: "Developer".to_string(),
+                confidence: "medium".to_string(),
+                hint: format!("Device support files for iOS {name}. Remove old versions no longer tested against."),
+                size,
+                size_human: human_readable_size(size),
+                selected: false,
+            });
+        }
+    }
+    items
+}
+
+// ─── VIRTUAL MACHINES ─────────────────────────────────────────────────────────
+
+/// Detects leftover or large VM images from common hypervisors.
+pub fn detect_virtual_machines() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    let home = get_home();
+
+    struct VmEntry {
+        id: &'static str,
+        rel_path: &'static str,
+        name: &'static str,
+        ext: &'static str,
+        hint: &'static str,
+    }
+
+    let vms = vec![
+        VmEntry { id: "parallels_vms",  rel_path: "Parallels",               name: "Parallels VM Images",    ext: ".pvm",    hint: "Parallels Desktop virtual machine bundles." },
+        VmEntry { id: "vmware_vms",     rel_path: "Virtual Machines.localized", name: "VMware VM Images",    ext: ".vmwarevm", hint: "VMware Fusion virtual machine bundles." },
+        VmEntry { id: "vbox_vms",       rel_path: "VirtualBox VMs",           name: "VirtualBox VM Images",  ext: ".vbox",   hint: "VirtualBox virtual machine definitions." },
+        VmEntry { id: "utm_vms",        rel_path: "Library/Containers/com.utmapp.UTM/Data/Documents", name: "UTM VM Images", ext: ".utm", hint: "UTM (QEMU) virtual machine bundles." },
+    ];
+
+    for vm in &vms {
+        let base = home.join(vm.rel_path);
+        if !base.exists() { continue; }
+
+        let Ok(entries) = std::fs::read_dir(&base) else { continue };
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !name.ends_with(vm.ext) { continue; }
+
+            let size = get_directory_size(&entry.path(), CancellationToken::new());
+            if size < 100 * 1024 * 1024 { continue; } // skip < 100 MB
+
+            items.push(LeftoverItem {
+                id: format!("{}_{}", vm.id, name.replace(' ', "_")),
+                path: entry.path().to_string_lossy().to_string(),
+                name: name.trim_end_matches(vm.ext).to_string(),
+                bundle_id: vm.id.to_string(),
+                detection_source: "vm_scan".to_string(),
+                category: "Virtual Machines".to_string(),
+                confidence: "high".to_string(),
+                hint: format!("{}  Deleting permanently removes this VM.", vm.hint),
+                size,
+                size_human: human_readable_size(size),
+                selected: false,
+            });
+        }
+    }
+    items
+}
+
+// ─── FONT CACHES ──────────────────────────────────────────────────────────────
+
+/// Detects stale system and user font caches (macOS/Linux).
+pub fn detect_font_caches() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    let home = get_home();
+    let os = std::env::consts::OS;
+
+    let paths: Vec<(PathBuf, &str)> = if os == "macos" {
+        vec![
+            (PathBuf::from("/System/Library/Caches/com.apple.ATS"), "System Font Cache (ATS)"),
+            (home.join("Library/Caches/com.apple.ATS"), "User Font Cache (ATS)"),
+        ]
+    } else {
+        vec![
+            (home.join(".cache/fontconfig"), "Fontconfig Cache"),
+            (PathBuf::from("/var/cache/fontconfig"), "System Fontconfig Cache"),
+        ]
+    };
+
+    for (path, label) in &paths {
+        if !path.exists() { continue; }
+        let size = get_directory_size(path, CancellationToken::new());
+        if size == 0 { continue; }
+
+        items.push(LeftoverItem {
+            id: format!("font_cache_{}", path.file_name().unwrap_or_default().to_string_lossy()),
+            path: path.to_string_lossy().to_string(),
+            name: label.to_string(),
+            bundle_id: String::new(),
+            detection_source: "font_cache_scan".to_string(),
+            category: "Caches".to_string(),
+            confidence: "high".to_string(),
+            hint: format!("{label}. Rebuilt automatically by the OS on next login/app open."),
+            size,
+            size_human: human_readable_size(size),
+            selected: true,
+        });
+    }
+    items
+}
+
+// ─── SPOTLIGHT / SEARCH INDEXES ───────────────────────────────────────────────
+
+/// Detects stale Spotlight metadata stores on external/secondary volumes (macOS).
+pub fn detect_spotlight_indexes() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    if std::env::consts::OS != "macos" { return items; }
+
+    // Walk /Volumes for detached Spotlight stores
+    let Ok(volumes) = std::fs::read_dir("/Volumes") else { return items };
+    for vol in volumes.flatten() {
+        let spotlight = vol.path().join(".Spotlight-V100");
+        if !spotlight.exists() { continue; }
+        let size = get_directory_size(&spotlight, CancellationToken::new());
+        if size == 0 { continue; }
+        let vol_name = vol.file_name().to_string_lossy().to_string();
+        items.push(LeftoverItem {
+            id: format!("spotlight_{vol_name}"),
+            path: spotlight.to_string_lossy().to_string(),
+            name: format!("Spotlight Index ({vol_name})"),
+            bundle_id: "com.apple.Spotlight".to_string(),
+            detection_source: "spotlight_scan".to_string(),
+            category: "System".to_string(),
+            confidence: "medium".to_string(),
+            hint: format!("Spotlight search index on volume '{vol_name}'. Rebuilt if the volume is re-indexed."),
+            size,
+            size_human: human_readable_size(size),
+            selected: false,
+        });
+    }
+    items
+}
+
+// ─── TRASH / RECYCLE BIN ──────────────────────────────────────────────────────
+
+/// Reports the size of the user's Trash / Recycle Bin.
+pub fn detect_trash_size() -> Vec<LeftoverItem> {
+    let mut items = Vec::new();
+    let home = get_home();
+    let os = std::env::consts::OS;
+
+    let trash_path = if os == "macos" {
+        home.join(".Trash")
+    } else if os == "windows" {
+        PathBuf::from("C:\\$Recycle.Bin")
+    } else {
+        home.join(".local/share/Trash/files")
+    };
+
+    if !trash_path.exists() { return items; }
+    let size = get_directory_size(&trash_path, CancellationToken::new());
+    if size == 0 { return items; }
+
+    items.push(LeftoverItem {
+        id: "trash".to_string(),
+        path: trash_path.to_string_lossy().to_string(),
+        name: "Trash / Recycle Bin".to_string(),
+        bundle_id: String::new(),
+        detection_source: "trash_scan".to_string(),
+        category: "System".to_string(),
+        confidence: "high".to_string(),
+        hint: "Items in Trash are not freed until emptied. Permanently deletes all trashed files.".to_string(),
+        size,
+        size_human: human_readable_size(size),
+        selected: false,
+    });
+    items
 }

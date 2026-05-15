@@ -13,7 +13,13 @@ use super::detectors::get_cache_locations;
 use super::detectors::{
     get_installed_bundle_ids, detect_container_orphans, 
     detect_group_container_orphans, detect_preference_orphans, 
-    detect_app_support_orphans, detect_launch_agent_orphans, detect_cache_orphans
+    detect_app_support_orphans, detect_launch_agent_orphans, detect_cache_orphans,
+    detect_installed_apps, detect_hidden_apps, detect_large_app_data,
+    detect_temp_data, detect_orphaned_libraries, detect_homebrew_orphans,
+    detect_pip_global_packages, detect_gem_packages, detect_cli_tool_data,
+    detect_browser_caches, detect_crash_reports, detect_xcode_simulators,
+    detect_virtual_machines, detect_font_caches, detect_spotlight_indexes,
+    detect_trash_size
 };
 use tokio::io::{AsyncWriteExt, AsyncSeekExt};
 
@@ -748,6 +754,7 @@ pub fn get_system_stats() -> SystemStats {
 // ----------------------------------------------------
 
 #[cfg(target_os = "macos")]
+#[cfg(target_os = "macos")]
 #[tauri::command]
 pub async fn start_leftover_scan(app: AppHandle, state: State<'_, CleanerState>) -> Result<(), CleanerError> {
     let mut in_progress = state.leftover_scan_in_progress.lock().await;
@@ -779,40 +786,162 @@ pub async fn start_leftover_scan(app: AppHandle, state: State<'_, CleanerState>)
         let mut total_size = 0;
         let mut found_count = 0;
         let mut all_orphans = Vec::new();
-
-        let _ = tx.send(ScanProgress { current: 0, total: 6, percent: 5, current_location: "Getting installed apps...".into(), found_count, total_size }).await;
         
-        let installed = get_installed_bundle_ids();
+        let steps = 22; // Increased total steps
+        let mut current_step = 0;
 
-        let _ = tx.send(ScanProgress { current: 1, total: 6, percent: 15, current_location: "Scanning containers...".into(), found_count, total_size }).await;
+        let mut send_prog = |step: usize, loc: &str, p: u8| {
+            let tx = tx.clone();
+            let loc = loc.to_string();
+            async move {
+                let _ = tx.send(ScanProgress { 
+                    current: step, 
+                    total: steps, 
+                    percent: p, 
+                    current_location: loc, 
+                    found_count, 
+                    total_size 
+                }).await;
+            }
+        };
+
+        send_prog(current_step, "Getting installed apps...", 2).await;
+        let installed = get_installed_bundle_ids();
+        current_step += 1;
+
+        send_prog(current_step, "Scanning containers...", 5).await;
         let mut containers = detect_container_orphans(&installed);
         for c in &containers { total_size += c.size; found_count += 1; }
         all_orphans.append(&mut containers);
+        current_step += 1;
 
-        let _ = tx.send(ScanProgress { current: 2, total: 6, percent: 30, current_location: "Scanning group containers...".into(), found_count, total_size }).await;
+        send_prog(current_step, "Scanning group containers...", 10).await;
         let mut group = detect_group_container_orphans(&installed);
         for c in &group { total_size += c.size; found_count += 1; }
         all_orphans.append(&mut group);
+        current_step += 1;
 
-        let _ = tx.send(ScanProgress { current: 3, total: 6, percent: 50, current_location: "Scanning preferences...".into(), found_count, total_size }).await;
+        send_prog(current_step, "Scanning preferences...", 15).await;
         let mut prefs = detect_preference_orphans(&installed, None);
         for c in &prefs { total_size += c.size; found_count += 1; }
         all_orphans.append(&mut prefs);
+        current_step += 1;
 
-        let _ = tx.send(ScanProgress { current: 4, total: 6, percent: 70, current_location: "Scanning App Support...".into(), found_count, total_size }).await;
+        send_prog(current_step, "Scanning App Support...", 20).await;
         let mut support = detect_app_support_orphans(&installed, None);
         for c in &support { total_size += c.size; found_count += 1; }
         all_orphans.append(&mut support);
+        current_step += 1;
 
-        let _ = tx.send(ScanProgress { current: 5, total: 6, percent: 85, current_location: "Scanning Launch Agents...".into(), found_count, total_size }).await;
+        send_prog(current_step, "Scanning Launch Agents...", 25).await;
         let mut launch = detect_launch_agent_orphans(&installed, None);
         for c in &launch { total_size += c.size; found_count += 1; }
         all_orphans.append(&mut launch);
+        current_step += 1;
 
-        let _ = tx.send(ScanProgress { current: 6, total: 6, percent: 95, current_location: "Scanning generic caches...".into(), found_count, total_size }).await;
+        send_prog(current_step, "Scanning generic caches...", 30).await;
         let mut caches = detect_cache_orphans(&installed, None);
         for c in &caches { total_size += c.size; found_count += 1; }
         all_orphans.append(&mut caches);
+        current_step += 1;
+
+        // --- NEW DETECTORS ---
+
+        send_prog(current_step, "Detecting installed app bundles...", 35).await;
+        let mut inst_apps = detect_installed_apps();
+        for c in &inst_apps { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut inst_apps);
+        current_step += 1;
+
+        send_prog(current_step, "Searching for hidden apps...", 40).await;
+        let mut hidden = detect_hidden_apps();
+        for c in &hidden { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut hidden);
+        current_step += 1;
+
+        send_prog(current_step, "Scanning for large app data...", 45).await;
+        let mut large_data = detect_large_app_data(&installed, 100 * 1024 * 1024); // 100MB threshold
+        for c in &large_data { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut large_data);
+        current_step += 1;
+
+        send_prog(current_step, "Cleaning system temp paths...", 50).await;
+        let mut temp = detect_temp_data();
+        for c in &temp { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut temp);
+        current_step += 1;
+
+        send_prog(current_step, "Finding orphaned libraries...", 55).await;
+        let mut libs = detect_orphaned_libraries(&installed);
+        for c in &libs { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut libs);
+        current_step += 1;
+
+        send_prog(current_step, "Auditing Homebrew formulae...", 60).await;
+        let mut brew = detect_homebrew_orphans();
+        for c in &brew { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut brew);
+        current_step += 1;
+
+        send_prog(current_step, "Checking global pip packages...", 63).await;
+        let mut pip = detect_pip_global_packages();
+        for c in &pip { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut pip);
+        current_step += 1;
+
+        send_prog(current_step, "Checking Ruby gem caches...", 66).await;
+        let mut gems = detect_gem_packages();
+        for c in &gems { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut gems);
+        current_step += 1;
+
+        send_prog(current_step, "Scanning CLI tool caches...", 70).await;
+        let mut cli = detect_cli_tool_data();
+        for c in &cli { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut cli);
+        current_step += 1;
+
+        send_prog(current_step, "Cleaning browser forensic caches...", 75).await;
+        let mut browsers = detect_browser_caches();
+        for c in &browsers { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut browsers);
+        current_step += 1;
+
+        send_prog(current_step, "Collecting crash reports...", 80).await;
+        let mut crash = detect_crash_reports();
+        for c in &crash { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut crash);
+        current_step += 1;
+
+        send_prog(current_step, "Finding Xcode simulators...", 85).await;
+        let mut xcode = detect_xcode_simulators();
+        for c in &xcode { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut xcode);
+        current_step += 1;
+
+        send_prog(current_step, "Scanning for VM images...", 90).await;
+        let mut vms = detect_virtual_machines();
+        for c in &vms { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut vms);
+        current_step += 1;
+
+        send_prog(current_step, "Purging font caches...", 93).await;
+        let mut fonts = detect_font_caches();
+        for c in &fonts { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut fonts);
+        current_step += 1;
+
+        send_prog(current_step, "Checking Spotlight indexes...", 96).await;
+        let mut spotlight = detect_spotlight_indexes();
+        for c in &spotlight { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut spotlight);
+        current_step += 1;
+
+        send_prog(current_step, "Calculating Trash size...", 98).await;
+        let mut trash = detect_trash_size();
+        for c in &trash { total_size += c.size; found_count += 1; }
+        all_orphans.append(&mut trash);
+        current_step += 1;
 
         let state = app_worker.state::<CleanerState>();
         let mut results = state.leftover_results.lock().await;
@@ -822,8 +951,8 @@ pub async fn start_leftover_scan(app: AppHandle, state: State<'_, CleanerState>)
         *in_progress = false;
 
         let _ = tx.send(ScanProgress {
-            current: 6,
-            total: 6,
+            current: steps,
+            total: steps,
             percent: 100,
             current_location: "Scan complete".into(),
             found_count,
